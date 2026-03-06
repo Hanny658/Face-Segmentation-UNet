@@ -1,0 +1,55 @@
+#!/bin/bash
+#SBATCH --partition=MGPU-TC2
+#SBATCH --qos=normal
+#SBATCH --gres=gpu:1
+#
+### Specify Memory allocate to this job ###
+#SBATCH --mem=16G
+#
+### Specify number of core (CPU) to allocate to per task ###
+#SBATCH --cpus-per-task=1
+#
+### Specify number of node to compute ###
+#SBATCH --nodes=1
+#
+### Optional: Specify node to execute the job ###
+### Remove 1st # at next line for the option to take effect ###
+##SBATCH --nodelist=TC2N01
+#
+### Specify Time Limit, format: <min> or <min>:<sec> or <hr>:<min>:<sec> or <days>-<hr>:<min>:<sec> or <days>-<hr> ###
+#SBATCH --time=01:00:00
+#
+### Specify name for the job, filename format for output and error ###
+#SBATCH --job-name=ACV-EnvSetup
+#SBATCH --error=logs/env.%j.log
+#SBATCH --output=logs/env.%j.log
+
+set -euo pipefail
+mkdir -p logs
+
+PROJECT_ROOT="${PROJECT_ROOT:-$SLURM_SUBMIT_DIR}"
+cd "$PROJECT_ROOT"
+
+echo "[env-setup] Project root: $PROJECT_ROOT"
+echo "[env-setup] Loading modules..."
+module purge
+module load gcc/14.2.0
+module load python312 || module load python3
+
+VENV_DIR="${VENV_DIR:-$PROJECT_ROOT/experiments/.venv_slurm}"
+echo "[env-setup] VENV_DIR=$VENV_DIR"
+
+if command -v python3 >/dev/null 2>&1; then
+  PYTHON_BIN="python3"
+else
+  PYTHON_BIN="python"
+fi
+
+$PYTHON_BIN -m venv "$VENV_DIR"
+source "$VENV_DIR/bin/activate"
+
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+
+echo "[env-setup] Completed."
+echo "[env-setup] Activate in future jobs with: source $VENV_DIR/bin/activate"

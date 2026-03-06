@@ -118,3 +118,43 @@ python infer.py --config config.yaml --checkpoint experiments/baseline/best.pt -
 ```
 
 Predictions are saved as indexed masks (default `.png`) in `outputs/`.
+
+## Slurm Job Scripts
+
+Two submit-ready scripts are included under `experiments/`:
+
+- `experiments/env_setup.batch`: loads modules, creates virtualenv, installs requirements
+- `experiments/train.batch`: trains and stores metrics/plot/checkpoints in one output folder
+
+### 1) Environment setup
+
+```bash
+sbatch experiments/env_setup.batch
+```
+
+Optional overrides:
+
+```bash
+sbatch --export=ALL,VENV_DIR=/path/to/venv experiments/env_setup.batch
+```
+
+### 2) Training job
+
+```bash
+sbatch experiments/train.batch config.yaml
+```
+
+Optional overrides:
+
+```bash
+sbatch --export=ALL,RUN_NAME=my_run,TRAIN_ARGS="--epochs 50 --batch-size 8 --num-workers 4" experiments/train.batch config.yaml
+```
+
+All key outputs are written into the same run directory, default:
+
+- `experiments/run_<SLURM_JOB_ID>/best.pt`
+- `experiments/run_<SLURM_JOB_ID>/last.pt`
+- `experiments/run_<SLURM_JOB_ID>/history.json`
+- `experiments/run_<SLURM_JOB_ID>/val_f1_curve.png` (if validation is enabled)
+- `experiments/run_<SLURM_JOB_ID>/val_metrics.txt`
+- `experiments/run_<SLURM_JOB_ID>/param_count.txt`
