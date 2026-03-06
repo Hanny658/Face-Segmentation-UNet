@@ -37,6 +37,7 @@ This project is a clean prototype for semantic face parsing with strict constrai
 │  └─ utils/
 │     ├─ metrics.py
 │     ├─ checkpoint.py
+│     ├─ plotting.py
 │     ├─ seed.py
 │     └─ param_count.py
 └─ experiments/
@@ -82,6 +83,7 @@ pip install -r requirements.txt
   - color jitter
   - gaussian blur
 - Internal validation split from train set by default (`val_split=0.1`)
+- Validation F-measure curve is saved to `experiments/<run>/val_f1_curve.png` when validation is enabled
 
 ## Run
 

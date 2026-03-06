@@ -10,6 +10,7 @@ from tqdm import tqdm
 
 from src.engine.evaluator import evaluate
 from src.utils.checkpoint import save_checkpoint
+from src.utils.plotting import plot_validation_f1
 
 
 def train_one_epoch(
@@ -139,3 +140,9 @@ def fit(
 
     with open(save_dir / "history.json", "w", encoding="utf-8") as f:
         json.dump(history, f, indent=2)
+
+    if val_loader is not None:
+        plot_path = save_dir / "val_f1_curve.png"
+        created = plot_validation_f1(history, plot_path)
+        if created:
+            print(f"Saved validation F1 curve to: {plot_path}")
