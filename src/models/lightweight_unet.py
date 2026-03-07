@@ -283,6 +283,10 @@ def build_model(cfg: Dict) -> LightweightUNet:
         from .bisenet import build_bisenet_from_cfg
 
         return build_bisenet_from_cfg(cfg)
+    if model_type in {"pidnet", "pidnet_lite"}:
+        from .pidnet import build_pidnet_from_cfg
+
+        return build_pidnet_from_cfg(cfg)
 
     data_cfg = cfg["data"]
     channels: Iterable[int] = model_cfg["encoder_channels"]

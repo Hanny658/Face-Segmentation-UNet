@@ -27,6 +27,7 @@ This project is a clean prototype for semantic face parsing with strict constrai
 │  ├─ models/
 │  │  ├─ blocks.py
 │  │  ├─ bisenet.py
+│  │  ├─ pidnet.py
 │  │  ├─ lightweight_unet.py
 │  │  └─ attention.py
 │  ├─ losses/
@@ -112,6 +113,12 @@ For a BiSeNetV2-style variant under the parameter cap, use:
 
 ```bash
 python train.py --config experiments/config_bisenet.yaml
+```
+
+For a PIDNet-style variant under the parameter cap, use:
+
+```bash
+python train.py --config experiments/config_pid.yaml
 ```
 
 ## Run

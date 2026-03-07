@@ -1,0 +1,87 @@
+seed: 42
+
+data:
+  root: data
+  train_images: train/images
+  train_masks: train/masks
+  val_images: val/images
+  val_masks: val/masks
+  input_size: 512
+  num_classes: 19
+  class_names:
+    - background
+    - skin
+    - nose
+    - eye_g
+    - l_eye
+    - r_eye
+    - l_brow
+    - r_brow
+    - l_ear
+    - r_ear
+    - mouth
+    - u_lip
+    - l_lip
+    - hair
+    - hat
+    - ear_r
+    - neck_l
+    - neck
+    - cloth
+  val_split: 0.1
+  num_workers: 4
+  pin_memory: true
+
+model:
+  model_type: pidnet
+  max_trainable_params: 1821085
+  pidnet:
+    stem_channels: 32
+    p_channels: 96
+    d_channels: 40
+    i_channels: [56, 112, 152]
+    i_blocks: [1, 1, 1]
+    head_channels: 176
+
+train:
+  epochs: 100
+  batch_size: 10
+  drop_last: true
+  use_amp: true
+  use_internal_val: true
+  lr: 0.0003
+  weight_decay: 0.0005
+  min_lr: 0.000001
+  save_dir: experiments/pidnet
+
+loss:
+  dice_weight: 0.5
+  ignore_index: null
+  ce_weighting:
+    enabled: true
+    stats_json: experiments/mask_stats.json
+    key: recommended_weighted_ce.weights
+    min_weight: 0.0
+    max_weight: null
+    normalize_mean_one: false
+
+augmentation:
+  hflip_prob: 0.5
+  rotation_deg: 15
+  resize_scale: [0.8, 1.0]
+  resize_ratio: [0.9, 1.1]
+  color_jitter:
+    brightness: 0.2
+    contrast: 0.2
+    saturation: 0.2
+    hue: 0.05
+    prob: 0.8
+  gaussian_blur:
+    prob: 0.2
+    sigma: [0.1, 1.5]
+
+inference:
+  batch_size: 8
+  tta_flip: false
+  output_dir: outputs
+  output_ext: .png
