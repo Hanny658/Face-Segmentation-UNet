@@ -245,3 +245,36 @@ All key outputs are written into the same run directory, default:
 - `experiments/run_<SLURM_JOB_ID>/val_fscore_curve.png` (if validation is enabled)
 - `experiments/run_<SLURM_JOB_ID>/val_metrics.txt`
 - `experiments/run_<SLURM_JOB_ID>/param_count.txt`
+
+## PBS Job Scripts
+
+PBS versions are also included:
+
+- `experiments/env_setup.pbs`
+- `experiments/train.pbs`
+
+Note: these PBS scripts load cluster `pytorch` modules and skip pip-installing `torch/torchvision`.
+
+### 1) Environment setup (PBS)
+
+```bash
+qsub experiments/env_setup.pbs
+```
+
+Optional overrides:
+
+```bash
+qsub -v VENV_DIR=/path/to/venv experiments/env_setup.pbs
+```
+
+### 2) Training job (PBS)
+
+```bash
+qsub -v CONFIG_PATH=config.yaml experiments/train.pbs
+```
+
+Optional overrides:
+
+```bash
+qsub -v CONFIG_PATH=config.yaml,RUN_NAME=my_run,TRAIN_ARGS="--epochs 50 --batch-size 8 --num-workers 4" experiments/train.pbs
+```

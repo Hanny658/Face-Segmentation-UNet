@@ -1,0 +1,73 @@
+#!/bin/bash
+#PBS -N ACV-Train
+#PBS -l select=1:ncpus=1:ngpus=1:mem=80gb
+#PBS -l walltime=08:00:00
+#PBS -j oe
+#PBS -P personal
+#PBS -q normal
+#PBS -o logs/train.pbs.log
+
+set -euo pipefail
+
+PROJECT_ROOT="${PROJECT_ROOT:-${PBS_O_WORKDIR:-$PWD}}"
+cd "$PROJECT_ROOT"
+mkdir -p logs
+
+echo "[train][pbs] Project root: $PROJECT_ROOT"
+echo "[train][pbs] Loading modules..."
+module --force purge || module purge
+module load gcc/11.4.0-nscc || true
+module unload cuda >/dev/null 2>&1 || true
+module load pytorch/2.6.0-py3-cu11.8 || module load pytorch/2.6.0-py3 || module load pytorch/1.11.0-py3-gpu
+if ! command -v python >/dev/null 2>&1 && ! command -v python3 >/dev/null 2>&1; then
+  module load python/3.10.9 || module load python/3.12.1-gcc11 || module load python/3.11.7-gcc11 || module load python/3.10.4
+fi
+module list || true
+
+VENV_DIR="${VENV_DIR:-$PROJECT_ROOT/experiments/.venv_pbs}"
+if [[ ! -f "$VENV_DIR/bin/activate" ]]; then
+  echo "[train][pbs] Missing virtualenv at $VENV_DIR"
+  echo "[train][pbs] Run: qsub experiments/env_setup.pbs"
+  exit 1
+fi
+source "$VENV_DIR/bin/activate"
+
+python - <<'PY'
+import torch
+print("[train][pbs] torch:", torch.__version__)
+print("[train][pbs] cuda available:", torch.cuda.is_available())
+PY
+
+# Optional CUDA allocator hint to reduce fragmentation-related OOM.
+export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}"
+
+CONFIG_PATH="${CONFIG_PATH:-${1:-config.yaml}}"
+RUN_NAME="${RUN_NAME:-run_${PBS_JOBID:-manual}}"
+RUN_DIR="${RUN_DIR:-$PROJECT_ROOT/experiments/$RUN_NAME}"
+TRAIN_ARGS="${TRAIN_ARGS:-}"
+mkdir -p "$RUN_DIR"
+
+echo "[train][pbs] CONFIG_PATH=$CONFIG_PATH"
+echo "[train][pbs] RUN_DIR=$RUN_DIR"
+echo "[train][pbs] TRAIN_ARGS=$TRAIN_ARGS"
+
+# 1) Train: this writes checkpoints, history.json and val_fscore_curve.png into RUN_DIR.
+python train.py --config "$CONFIG_PATH" --save-dir "$RUN_DIR" $TRAIN_ARGS
+
+# 2) Save parameter report into same RUN_DIR.
+python count_params.py --config "$CONFIG_PATH" | tee "$RUN_DIR/param_count.txt"
+
+# 3) Save validation metrics report into same RUN_DIR (internal validation split).
+if [[ -f "$RUN_DIR/best.pt" ]]; then
+  python validate.py --config "$CONFIG_PATH" --checkpoint "$RUN_DIR/best.pt" --source internal | tee "$RUN_DIR/val_metrics.txt"
+else
+  echo "[train][pbs] best.pt not found; skipping validate.py" | tee "$RUN_DIR/val_metrics.txt"
+fi
+
+echo "[train][pbs] Done."
+echo "[train][pbs] Artifacts expected under $RUN_DIR:"
+echo "             - best.pt / last.pt"
+echo "             - history.json"
+echo "             - val_fscore_curve.png (if validation used)"
+echo "             - val_metrics.txt"
+echo "             - param_count.txt"
