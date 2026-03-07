@@ -36,6 +36,7 @@ This project is a clean prototype for semantic face parsing with strict constrai
 │  │  └─ inference.py
 │  └─ utils/
 │     ├─ metrics.py
+│     ├─ class_weights.py
 │     ├─ checkpoint.py
 │     ├─ plotting.py
 │     ├─ seed.py
@@ -71,6 +72,7 @@ pip install -r requirements.txt
 ## Default Training Recipe
 
 - Loss: `CrossEntropy + 0.5 * Dice`
+- Weighted CE (class-aware) is supported from `experiments/mask_stats.json`
 - Optimizer: `AdamW(lr=3e-4, weight_decay=5e-4)`
 - Scheduler: cosine annealing
 - Epochs: `100`
@@ -118,6 +120,29 @@ python infer.py --config config.yaml --checkpoint experiments/baseline/best.pt -
 ```
 
 Predictions are saved as indexed masks (default `.png`) in `outputs/`.
+
+## Mask Label Statistics
+
+To compute exact label IDs and class proportions from `data/train/masks`:
+
+```bash
+python analyze_masks.py --config config.yaml --masks-dir data/train/masks
+```
+
+Outputs:
+
+- `experiments/mask_stats.json`
+- `experiments/mask_stats.csv`
+
+Recommended weights for weighted CE are in:
+
+- `weights.median_freq_norm_mean1` inside `mask_stats.json`
+
+Current training reads weighted CE settings from `config.yaml`:
+
+- `loss.ce_weighting.enabled`
+- `loss.ce_weighting.stats_json`
+- `loss.ce_weighting.key` (for example `recommended_weighted_ce.weights`)
 
 ## Slurm Job Scripts
 

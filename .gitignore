@@ -209,3 +209,4 @@ __marimo__/
 # Data files and project specific files
 data/
 projectSpec.pdf
+experiments/run*

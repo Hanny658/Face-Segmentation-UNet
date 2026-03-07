@@ -14,6 +14,7 @@ from src.datasets.transforms import SegEvalTransform, SegTrainTransform
 from src.engine.trainer import fit
 from src.losses.segmentation_loss import SegmentationLoss
 from src.models.lightweight_unet import build_model
+from src.utils.class_weights import maybe_load_ce_class_weights
 from src.utils.param_count import count_trainable_parameters
 from src.utils.seed import set_seed
 
@@ -99,11 +100,14 @@ def main() -> None:
             f"Model has {trainable_params:,} trainable params, which violates limit {max_params:,}."
         )
 
+    num_classes = int(cfg["data"]["num_classes"])
+    ce_class_weights = maybe_load_ce_class_weights(cfg, num_classes=num_classes)
     criterion = SegmentationLoss(
-        num_classes=int(cfg["data"]["num_classes"]),
+        num_classes=num_classes,
         dice_weight=float(cfg["loss"]["dice_weight"]),
         ignore_index=cfg["loss"]["ignore_index"],
-    )
+        class_weights=ce_class_weights,
+    ).to(device)
     optimizer = AdamW(
         model.parameters(),
         lr=float(cfg["train"]["lr"]),
@@ -126,6 +130,10 @@ def main() -> None:
     print(f"Val samples: {0 if val_dataset is None else len(val_dataset)}")
     print(f"Trainable params: {trainable_params:,}")
     print(f"Saving artifacts to: {save_dir}")
+    if ce_class_weights is not None:
+        w_min = float(ce_class_weights.min().item())
+        w_max = float(ce_class_weights.max().item())
+        print(f"Weighted CE enabled: min_weight={w_min:.6f}, max_weight={w_max:.6f}")
 
     fit(
         model=model,

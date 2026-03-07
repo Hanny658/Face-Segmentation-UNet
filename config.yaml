@@ -32,6 +32,13 @@ train:
 loss:
   dice_weight: 0.5
   ignore_index: null
+  ce_weighting:
+    enabled: true
+    stats_json: experiments/mask_stats.json
+    key: recommended_weighted_ce.weights
+    min_weight: 0.0
+    max_weight: null
+    normalize_mean_one: false
 
 augmentation:
   hflip_prob: 0.5

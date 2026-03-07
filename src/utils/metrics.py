@@ -17,7 +17,9 @@ def _fast_confusion_matrix(pred: torch.Tensor, target: torch.Tensor, num_classes
         return hist.view(num_classes, num_classes)
 
 
-def metrics_from_confusion(confusion_matrix: torch.Tensor) -> Dict[str, float]:
+def metrics_from_confusion(
+    confusion_matrix: torch.Tensor, beta: float = 1.0, eps: float = 1e-7
+) -> Dict[str, float]:
     conf = confusion_matrix.double()
     tp = torch.diag(conf)
     total = conf.sum()
@@ -25,14 +27,20 @@ def metrics_from_confusion(confusion_matrix: torch.Tensor) -> Dict[str, float]:
 
     fp = conf.sum(dim=0) - tp
     fn = conf.sum(dim=1) - tp
-    denom = 2 * tp + fp + fn
-    f1 = torch.where(denom > 0, 2 * tp / denom, torch.zeros_like(tp))
-    valid_classes = denom > 0
-    f1_macro = f1[valid_classes].mean().item() if valid_classes.any() else 0.0
+    precision = tp / (tp + fp + eps)
+    recall = tp / (tp + fn + eps)
+
+    beta_sq = beta**2
+    f_beta = ((1 + beta_sq) * (precision * recall)) / ((beta_sq * precision) + recall + eps)
+
+    # Align with reference behavior: average only classes present in ground truth.
+    gt_present = conf.sum(dim=1) > 0
+    f1_macro = f_beta[gt_present].mean().item() if gt_present.any() else 0.0
 
     return {
         "pixel_accuracy": float(pixel_acc),
         "f1_macro": float(f1_macro),
+        "f_measure": float(f1_macro),
     }
 
 

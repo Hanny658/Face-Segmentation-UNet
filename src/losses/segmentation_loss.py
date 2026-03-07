@@ -11,12 +11,20 @@ from .dice import MultiClassDiceLoss
 class SegmentationLoss(nn.Module):
     """Total loss = CrossEntropy + dice_weight * Dice."""
 
-    def __init__(self, num_classes: int, dice_weight: float = 0.5, ignore_index: Optional[int] = None) -> None:
+    def __init__(
+        self,
+        num_classes: int,
+        dice_weight: float = 0.5,
+        ignore_index: Optional[int] = None,
+        class_weights: Optional[torch.Tensor] = None,
+    ) -> None:
         super().__init__()
+        if class_weights is not None:
+            class_weights = class_weights.float()
         if ignore_index is None:
-            self.ce = nn.CrossEntropyLoss()
+            self.ce = nn.CrossEntropyLoss(weight=class_weights)
         else:
-            self.ce = nn.CrossEntropyLoss(ignore_index=ignore_index)
+            self.ce = nn.CrossEntropyLoss(weight=class_weights, ignore_index=ignore_index)
         self.dice = MultiClassDiceLoss(num_classes=num_classes, ignore_index=ignore_index)
         self.dice_weight = dice_weight
 

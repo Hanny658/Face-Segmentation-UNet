@@ -12,6 +12,7 @@ from src.engine.evaluator import evaluate
 from src.losses.segmentation_loss import SegmentationLoss
 from src.models.lightweight_unet import build_model
 from src.utils.checkpoint import load_checkpoint
+from src.utils.class_weights import maybe_load_ce_class_weights
 from src.utils.seed import set_seed
 
 
@@ -86,18 +87,21 @@ def main() -> None:
 
     model = build_model(cfg).to(device)
     load_checkpoint(args.checkpoint, model=model, map_location=device)
+    num_classes = int(cfg["data"]["num_classes"])
+    ce_class_weights = maybe_load_ce_class_weights(cfg, num_classes=num_classes)
     criterion = SegmentationLoss(
-        num_classes=int(cfg["data"]["num_classes"]),
+        num_classes=num_classes,
         dice_weight=float(cfg["loss"]["dice_weight"]),
         ignore_index=cfg["loss"]["ignore_index"],
-    )
+        class_weights=ce_class_weights,
+    ).to(device)
 
     metrics = evaluate(
         model=model,
         data_loader=loader,
         criterion=criterion,
         device=device,
-        num_classes=int(cfg["data"]["num_classes"]),
+        num_classes=num_classes,
         use_amp=bool(cfg["train"]["use_amp"]),
         desc=f"validate:{args.source}",
     )
