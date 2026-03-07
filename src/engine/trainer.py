@@ -13,7 +13,7 @@ from src.engine.evaluator import evaluate
 from src.losses.boundary import boundary_bce_from_logits
 from src.utils.checkpoint import save_checkpoint
 from src.utils.model_outputs import split_model_outputs
-from src.utils.plotting import plot_validation_f1
+from src.utils.plotting import plot_validation_f_score
 
 
 def _mask_to_boundary_target(mask: torch.Tensor) -> torch.Tensor:
@@ -169,7 +169,7 @@ def fit(
                 use_amp=use_amp,
                 desc=f"val {epoch + 1}/{epochs}",
             )
-            current_score = val_metrics["f1_macro"]
+            current_score = float(val_metrics["f_score"])
         else:
             val_metrics = {}
             # If no validation set is used, pick latest by minimizing train loss.
@@ -203,7 +203,7 @@ def fit(
         print(
             f"Epoch {epoch + 1:03d} | "
             f"train_loss={train_metrics['loss']:.4f} "
-            f"val_f1={val_metrics.get('f1_macro', float('nan')):.4f} "
+            f"val_f_score={val_metrics.get('f_score', float('nan')):.4f} "
             f"best={'yes' if is_best else 'no'}"
         )
 
@@ -211,7 +211,7 @@ def fit(
         json.dump(history, f, indent=2)
 
     if val_loader is not None:
-        plot_path = save_dir / "val_f1_curve.png"
-        created = plot_validation_f1(history, plot_path)
+        plot_path = save_dir / "val_fscore_curve.png"
+        created = plot_validation_f_score(history, plot_path)
         if created:
-            print(f"Saved validation F1 curve to: {plot_path}")
+            print(f"Saved validation F-score curve to: {plot_path}")

@@ -110,14 +110,14 @@ def main() -> None:
     print(f"Samples: {len(dataset)}")
     print(f"Loss: {metrics['loss']:.6f}")
     print(f"Pixel Accuracy: {metrics['pixel_accuracy']:.6f}")
-    print(f"F1 (macro): {metrics['f1_macro']:.6f}")
+    print(f"F-score: {metrics['f_score']:.6f}")
     class_names = get_class_names(cfg, num_classes=num_classes)
-    print("Per-class F1:")
-    for class_id, (class_name, f1_val, present) in enumerate(
-        zip(class_names, metrics["f1_per_class"], metrics["gt_present"])
+    print("Per-class F-score:")
+    for class_id, (class_name, score_val, present) in enumerate(
+        zip(class_names, metrics["f_score_per_class"], metrics["gt_present"])
     ):
         status = "present" if present else "absent"
-        print(f"  [{class_id:02d}] {class_name:<12} f1={float(f1_val):.6f} ({status})")
+        print(f"  [{class_id:02d}] {class_name:<12} f_score={float(score_val):.6f} ({status})")
 
 
 if __name__ == "__main__":

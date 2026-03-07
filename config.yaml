@@ -34,7 +34,7 @@ data:
     - [6, 7]   # l_brow <-> r_brow
     - [8, 9]   # l_ear <-> r_ear
   val_split: 0.1
-  num_workers: 4
+  num_workers: 2
   pin_memory: true
 
 model:

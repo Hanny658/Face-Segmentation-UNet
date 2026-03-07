@@ -33,7 +33,7 @@ data:
     - [6, 7]
     - [8, 9]
   val_split: 0.1
-  num_workers: 4
+  num_workers: 2
   pin_memory: true
 
 model:

@@ -17,7 +17,7 @@
 ##SBATCH --nodelist=TC2N01
 #
 ### Specify Time Limit, format: <min> or <min>:<sec> or <hr>:<min>:<sec> or <days>-<hr>:<min>:<sec> or <days>-<hr> ###
-#SBATCH --time=01:00:00
+#SBATCH --time=02:00:00
 #
 ### Specify name for the job, filename format for output and error ###
 #SBATCH --job-name=ACV-Train
@@ -54,7 +54,7 @@ echo "[train] CONFIG_PATH=$CONFIG_PATH"
 echo "[train] RUN_DIR=$RUN_DIR"
 echo "[train] TRAIN_ARGS=$TRAIN_ARGS"
 
-# 1) Train: this writes checkpoints, history.json and val_f1_curve.png into RUN_DIR.
+# 1) Train: this writes checkpoints, history.json and val_fscore_curve.png into RUN_DIR.
 python train.py --config "$CONFIG_PATH" --save-dir "$RUN_DIR" $TRAIN_ARGS
 
 # 2) Save parameter report into same RUN_DIR.
@@ -71,6 +71,6 @@ echo "[train] Done."
 echo "[train] Artifacts expected under $RUN_DIR:"
 echo "         - best.pt / last.pt"
 echo "         - history.json"
-echo "         - val_f1_curve.png (if validation used)"
+echo "         - val_fscore_curve.png (if validation used)"
 echo "         - val_metrics.txt"
 echo "         - param_count.txt"

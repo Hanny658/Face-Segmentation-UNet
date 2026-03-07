@@ -93,7 +93,7 @@ pip install -r requirements.txt
   - color jitter
   - gaussian blur
 - Internal validation split from train set by default (`val_split=0.1`)
-- Validation F-measure curve is saved to `experiments/<run>/val_f1_curve.png` when validation is enabled
+- Validation F-score curve is saved to `experiments/<run>/val_fscore_curve.png` when validation is enabled
 
 ### Encoder/Decoder Options
 
@@ -155,8 +155,8 @@ python validate.py --config config.yaml --checkpoint experiments/baseline/best.p
 
 `validate.py` prints:
 
-- overall loss / pixel accuracy / mean F1
-- per-class F1 with class names from `data.class_names` in `config.yaml`
+- overall loss / pixel accuracy / mean F-score
+- per-class F-score with class names from `data.class_names` in `config.yaml`
 
 If `data/val/masks` exists:
 
@@ -234,6 +234,6 @@ All key outputs are written into the same run directory, default:
 - `experiments/run_<SLURM_JOB_ID>/best.pt`
 - `experiments/run_<SLURM_JOB_ID>/last.pt`
 - `experiments/run_<SLURM_JOB_ID>/history.json`
-- `experiments/run_<SLURM_JOB_ID>/val_f1_curve.png` (if validation is enabled)
+- `experiments/run_<SLURM_JOB_ID>/val_fscore_curve.png` (if validation is enabled)
 - `experiments/run_<SLURM_JOB_ID>/val_metrics.txt`
 - `experiments/run_<SLURM_JOB_ID>/param_count.txt`
