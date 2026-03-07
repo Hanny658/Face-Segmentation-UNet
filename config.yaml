@@ -33,7 +33,7 @@ data:
   pin_memory: true
 
 model:
-  encoder_channels: [32, 56, 80, 112, 160]
+  encoder_channels: [33, 64, 97, 126, 170]
   expand_ratio: 4
   use_se: false
   max_trainable_params: 1821085
