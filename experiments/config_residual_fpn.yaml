@@ -1,4 +1,4 @@
-seed: 64
+seed: 42
 
 data:
   root: data
@@ -33,13 +33,13 @@ data:
   pin_memory: true
 
 model:
-  encoder_type: mobilenetv2
-  encoder_channels: [35, 68, 104, 136, 184]
+  encoder_type: resnet
+  encoder_channels: [38, 74, 112, 146, 194]
+  residual_blocks: [1, 1, 1, 1]
   expand_ratio: 4
   use_se: false
-  residual_blocks: [1, 1, 1, 1]
   decoder_type: fpn
-  fpn_channels: 112
+  fpn_channels: 96
   max_trainable_params: 1821085
 
 train:
@@ -51,7 +51,7 @@ train:
   lr: 0.0003
   weight_decay: 0.0005
   min_lr: 0.000001
-  save_dir: experiments/baseline
+  save_dir: experiments/residual_fpn
 
 loss:
   dice_weight: 0.5
@@ -74,9 +74,9 @@ augmentation:
     contrast: 0.2
     saturation: 0.2
     hue: 0.05
-    prob: 0.7
+    prob: 0.8
   gaussian_blur:
-    prob: 0.1
+    prob: 0.2
     sigma: [0.1, 1.5]
 
 inference:

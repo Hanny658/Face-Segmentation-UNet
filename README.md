@@ -89,6 +89,24 @@ pip install -r requirements.txt
 - Internal validation split from train set by default (`val_split=0.1`)
 - Validation F-measure curve is saved to `experiments/<run>/val_f1_curve.png` when validation is enabled
 
+### Encoder/Decoder Options
+
+`model.encoder_type` supports:
+
+- `mobilenetv2` (default)
+- `resnet` (light residual backbone)
+
+`model.decoder_type` supports:
+
+- `fpn` (default)
+- `unet`
+
+For a submit-ready residual+FPN variant under the parameter cap, use:
+
+```bash
+python train.py --config experiments/config_residual_fpn.yaml
+```
+
 ## Run
 
 1. Count parameters

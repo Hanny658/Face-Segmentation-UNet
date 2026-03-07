@@ -68,6 +68,82 @@ class MobileEncoder(nn.Module):
         return f1, f2, f3, f4, f5
 
 
+class ResidualBlock(nn.Module):
+    """Basic residual block with optional downsample projection."""
+
+    def __init__(self, in_channels: int, out_channels: int, stride: int = 1) -> None:
+        super().__init__()
+        self.conv1 = nn.Conv2d(
+            in_channels,
+            out_channels,
+            kernel_size=3,
+            stride=stride,
+            padding=1,
+            bias=False,
+        )
+        self.bn1 = nn.BatchNorm2d(out_channels)
+        self.relu = nn.ReLU(inplace=True)
+        self.conv2 = nn.Conv2d(
+            out_channels,
+            out_channels,
+            kernel_size=3,
+            stride=1,
+            padding=1,
+            bias=False,
+        )
+        self.bn2 = nn.BatchNorm2d(out_channels)
+
+        if stride != 1 or in_channels != out_channels:
+            self.proj = nn.Sequential(
+                nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=stride, bias=False),
+                nn.BatchNorm2d(out_channels),
+            )
+        else:
+            self.proj = nn.Identity()
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        identity = self.proj(x)
+        out = self.relu(self.bn1(self.conv1(x)))
+        out = self.bn2(self.conv2(out))
+        out = self.relu(out + identity)
+        return out
+
+
+class ResidualEncoder(nn.Module):
+    """Lightweight ResNet-style encoder producing 1/2..1/32 features."""
+
+    def __init__(self, channels: Sequence[int], blocks_per_stage: Sequence[int] = (1, 1, 1, 1)) -> None:
+        super().__init__()
+        if len(channels) != 5:
+            raise ValueError("Expected exactly five encoder channel levels.")
+        if len(blocks_per_stage) != 4:
+            raise ValueError("Expected blocks_per_stage length of 4.")
+
+        c1, c2, c3, c4, c5 = channels
+        b2, b3, b4, b5 = [int(x) for x in blocks_per_stage]
+
+        self.stem = ConvBNAct(3, c1, kernel_size=3, stride=2, padding=1)
+        self.stage2 = self._make_stage(c1, c2, blocks=b2, stride=2)
+        self.stage3 = self._make_stage(c2, c3, blocks=b3, stride=2)
+        self.stage4 = self._make_stage(c3, c4, blocks=b4, stride=2)
+        self.stage5 = self._make_stage(c4, c5, blocks=b5, stride=2)
+
+    @staticmethod
+    def _make_stage(in_channels: int, out_channels: int, blocks: int, stride: int) -> nn.Sequential:
+        layers = [ResidualBlock(in_channels, out_channels, stride=stride)]
+        for _ in range(max(0, blocks - 1)):
+            layers.append(ResidualBlock(out_channels, out_channels, stride=1))
+        return nn.Sequential(*layers)
+
+    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, ...]:
+        f1 = self.stem(x)    # 1/2
+        f2 = self.stage2(f1)  # 1/4
+        f3 = self.stage3(f2)  # 1/8
+        f4 = self.stage4(f3)  # 1/16
+        f5 = self.stage5(f4)  # 1/32
+        return f1, f2, f3, f4, f5
+
+
 class FPNDecoder(nn.Module):
     """Lightweight FPN-style decoder with top-down fusion."""
 
@@ -124,17 +200,31 @@ class LightweightUNet(nn.Module):
         encoder_channels: Sequence[int] = (32, 56, 80, 112, 160),
         expand_ratio: int = 4,
         use_se: bool = False,
+        encoder_type: str = "mobilenetv2",
+        residual_blocks: Sequence[int] = (1, 1, 1, 1),
         decoder_type: str = "unet",
         fpn_channels: int = 96,
     ) -> None:
         super().__init__()
         c1, c2, c3, c4, c5 = encoder_channels
 
-        self.encoder = MobileEncoder(
-            channels=encoder_channels,
-            expand_ratio=expand_ratio,
-            use_se=use_se,
-        )
+        encoder_type = encoder_type.lower().strip()
+        self.encoder_type = encoder_type
+        if encoder_type in {"mobilenetv2", "mobile", "mbconv"}:
+            self.encoder = MobileEncoder(
+                channels=encoder_channels,
+                expand_ratio=expand_ratio,
+                use_se=use_se,
+            )
+        elif encoder_type in {"resnet", "residual"}:
+            self.encoder = ResidualEncoder(
+                channels=encoder_channels,
+                blocks_per_stage=tuple(int(x) for x in residual_blocks),
+            )
+        else:
+            raise ValueError(
+                f"Unsupported encoder_type '{encoder_type}'. Use 'mobilenetv2' or 'resnet'."
+            )
         decoder_type = decoder_type.lower().strip()
         self.decoder_type = decoder_type
 
@@ -195,6 +285,8 @@ def build_model(cfg: Dict) -> LightweightUNet:
         encoder_channels=tuple(int(c) for c in channels),
         expand_ratio=int(model_cfg["expand_ratio"]),
         use_se=bool(model_cfg["use_se"]),
+        encoder_type=str(model_cfg.get("encoder_type", "mobilenetv2")),
+        residual_blocks=tuple(int(x) for x in model_cfg.get("residual_blocks", [1, 1, 1, 1])),
         decoder_type=str(model_cfg.get("decoder_type", "unet")),
         fpn_channels=int(model_cfg.get("fpn_channels", 96)),
     )
