@@ -20,6 +20,7 @@ from src.utils.checkpoint import load_checkpoint
 from src.utils.class_weights import maybe_load_ce_class_weights
 from src.utils.flip_pairs import get_flip_pairs_from_cfg
 from src.utils.param_count import count_trainable_parameters
+from src.utils.palette import load_palette_from_masks_dir, make_pascal_palette
 from src.utils.seed import set_seed
 
 
@@ -51,6 +52,11 @@ def apply_overrides(cfg: Dict[str, Any], args: argparse.Namespace) -> Dict[str, 
     if args.full_train:
         cfg["train"]["use_internal_val"] = False
     return cfg
+
+
+def _resolve_under(root: Path, raw_path: str) -> Path:
+    p = Path(str(raw_path))
+    return p if p.is_absolute() else root / p
 
 
 def main() -> None:
@@ -123,7 +129,7 @@ def main() -> None:
         T_max=int(cfg["train"]["epochs"]),
         eta_min=float(cfg["train"]["min_lr"]),
     )
-    scaler = torch.cuda.amp.GradScaler(enabled=bool(cfg["train"]["use_amp"]) and device.type == "cuda")
+    scaler = torch.amp.GradScaler("cuda", enabled=bool(cfg["train"]["use_amp"]) and device.type == "cuda")
 
     save_dir = Path(cfg["train"]["save_dir"])
     save_dir.mkdir(parents=True, exist_ok=True)
@@ -175,6 +181,16 @@ def main() -> None:
         val_image_dir = data_root / cfg["data"]["val_images"]
         val_mask_dir = data_root / cfg["data"]["val_masks"]
         val_mask_dir.mkdir(parents=True, exist_ok=True)
+        save_palette = bool(cfg.get("inference", {}).get("save_palette", False))
+        palette_output_dir = None
+        palette = None
+        if save_palette:
+            palette_output_dir = _resolve_under(
+                data_root, str(cfg.get("inference", {}).get("palette_output_dir", "val/masks-palette"))
+            )
+            palette = load_palette_from_masks_dir(train_masks)
+            if palette is None:
+                palette = make_pascal_palette()
 
         infer_dataset = InferenceDataset(images_dir=val_image_dir, transform=InferenceTransform(cfg))
         infer_loader = DataLoader(
@@ -194,9 +210,13 @@ def main() -> None:
             output_ext=str(cfg["inference"]["output_ext"]),
             tta_flip=bool(cfg["inference"]["tta_flip"]),
             flip_pairs=flip_pairs,
+            palette_output_dir=palette_output_dir,
+            palette=palette,
             use_amp=bool(cfg["train"]["use_amp"]),
         )
         print(f"[post-train] Saved val predictions to: {val_mask_dir.resolve()}")
+        if palette_output_dir is not None:
+            print(f"[post-train] Saved val palette predictions to: {palette_output_dir.resolve()}")
 
 
 if __name__ == "__main__":

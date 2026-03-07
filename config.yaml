@@ -49,12 +49,12 @@ model:
 
 train:
   epochs: 100
-  batch_size: 10
+  batch_size: 20
   drop_last: true
   use_amp: true
   use_internal_val: true
   run_val_data: true
-  lr: 0.0003
+  lr: 0.0005
   weight_decay: 0.0005
   min_lr: 0.000001
   save_dir: experiments/baseline
@@ -93,7 +93,9 @@ augmentation:
     sigma: [0.1, 1.5]
 
 inference:
-  batch_size: 8
-  tta_flip: false
+  batch_size: 20
+  tta_flip: true
   output_dir: outputs
   output_ext: .png
+  save_palette: true
+  palette_output_dir: val/masks-palette

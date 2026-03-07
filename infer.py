@@ -12,6 +12,7 @@ from src.engine.inference import run_inference
 from src.models.lightweight_unet import build_model
 from src.utils.checkpoint import load_checkpoint
 from src.utils.flip_pairs import get_flip_pairs_from_cfg
+from src.utils.palette import load_palette_from_masks_dir, make_pascal_palette
 
 
 def parse_args() -> argparse.Namespace:
@@ -27,6 +28,11 @@ def parse_args() -> argparse.Namespace:
 def load_config(path: str) -> Dict[str, Any]:
     with open(path, "r", encoding="utf-8") as f:
         return yaml.safe_load(f)
+
+
+def _resolve_under(root: Path, raw_path: str) -> Path:
+    p = Path(str(raw_path))
+    return p if p.is_absolute() else root / p
 
 
 def main() -> None:
@@ -59,6 +65,16 @@ def main() -> None:
     output_dir = Path(cfg["inference"]["output_dir"])
     output_dir.mkdir(parents=True, exist_ok=True)
     flip_pairs = get_flip_pairs_from_cfg(cfg, num_classes=int(cfg["data"]["num_classes"]))
+    save_palette = bool(cfg.get("inference", {}).get("save_palette", False))
+    palette_output_dir = None
+    palette = None
+    if save_palette:
+        palette_output_dir = _resolve_under(
+            data_root, str(cfg.get("inference", {}).get("palette_output_dir", "val/masks-palette"))
+        )
+        palette = load_palette_from_masks_dir(data_root / cfg["data"]["train_masks"])
+        if palette is None:
+            palette = make_pascal_palette()
     run_inference(
         model=model,
         data_loader=loader,
@@ -67,9 +83,13 @@ def main() -> None:
         output_ext=str(cfg["inference"]["output_ext"]),
         tta_flip=bool(cfg["inference"]["tta_flip"]),
         flip_pairs=flip_pairs,
+        palette_output_dir=palette_output_dir,
+        palette=palette,
         use_amp=bool(cfg["train"]["use_amp"]),
     )
     print(f"Saved predictions to: {output_dir.resolve()}")
+    if palette_output_dir is not None:
+        print(f"Saved palette predictions to: {palette_output_dir.resolve()}")
 
 
 if __name__ == "__main__":

@@ -17,7 +17,7 @@
 ##SBATCH --nodelist=TC2N01
 #
 ### Specify Time Limit, format: <min> or <min>:<sec> or <hr>:<min>:<sec> or <days>-<hr>:<min>:<sec> or <days>-<hr> ###
-#SBATCH --time=02:00:00
+#SBATCH --time=04:00:00
 #
 ### Specify name for the job, filename format for output and error ###
 #SBATCH --job-name=ACV-Train

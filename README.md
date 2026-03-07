@@ -152,6 +152,7 @@ If `train.run_val_data: true`, after training finishes the script will:
 - load `best.pt`
 - run inference on `data/val/images`
 - write predictions to `data/val/masks`
+- also write palette masks to `data/val/masks-palette` (when `inference.save_palette: true`)
 
 3. Evaluate checkpoint
 
@@ -178,6 +179,7 @@ python infer.py --config config.yaml --checkpoint experiments/baseline/best.pt -
 
 Predictions are saved as indexed masks (default `.png`) in `outputs/`.
 When `--tta-flip` is used, left/right class channels are swapped back before averaging logits.
+If `inference.save_palette: true`, palette PNGs are additionally saved to `inference.palette_output_dir`.
 
 ## Mask Label Statistics
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Iterable, Sequence, Tuple
+from typing import Iterable, Optional, Sequence, Tuple
 
 import numpy as np
 import torch
@@ -44,12 +44,17 @@ def run_inference(
     output_ext: str = ".png",
     tta_flip: bool = False,
     flip_pairs: Sequence[Tuple[int, int]] | None = None,
+    palette_output_dir: Optional[Path] = None,
+    palette: Optional[Sequence[int]] = None,
     use_amp: bool = True,
 ) -> None:
     model.eval()
     amp_enabled = use_amp and device.type == "cuda"
     output_ext = output_ext if output_ext.startswith(".") else f".{output_ext}"
     flip_pairs = tuple((int(a), int(b)) for a, b in (flip_pairs or []))
+    palette_list = [int(x) & 255 for x in palette] if palette is not None else None
+    if palette_output_dir is not None:
+        palette_output_dir.mkdir(parents=True, exist_ok=True)
 
     for batch in tqdm(data_loader, desc="infer", leave=False):
         images = batch["image"].to(device, non_blocking=True)
@@ -72,3 +77,10 @@ def run_inference(
             if mask_img.size != (width, height):
                 mask_img = mask_img.resize((width, height), resample=Image.NEAREST)
             mask_img.save(output_dir / f"{name}{output_ext}")
+            if palette_output_dir is not None:
+                pal_img = Image.fromarray(mask_arr, mode="P")
+                if palette_list is not None:
+                    pal_img.putpalette(palette_list)
+                if pal_img.size != (width, height):
+                    pal_img = pal_img.resize((width, height), resample=Image.NEAREST)
+                pal_img.save(palette_output_dir / f"{name}.png")

@@ -95,3 +95,5 @@ inference:
   tta_flip: false
   output_dir: outputs
   output_ext: .png
+  save_palette: true
+  palette_output_dir: val/masks-palette
