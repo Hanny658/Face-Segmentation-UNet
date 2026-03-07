@@ -26,6 +26,7 @@ This project is a clean prototype for semantic face parsing with strict constrai
 │  │  └─ transforms.py
 │  ├─ models/
 │  │  ├─ blocks.py
+│  │  ├─ bisenet.py
 │  │  ├─ lightweight_unet.py
 │  │  └─ attention.py
 │  ├─ losses/
@@ -105,6 +106,12 @@ For a submit-ready residual+FPN variant under the parameter cap, use:
 
 ```bash
 python train.py --config experiments/config_residual_fpn.yaml
+```
+
+For a BiSeNetV2-style variant under the parameter cap, use:
+
+```bash
+python train.py --config experiments/config_bisenet.yaml
 ```
 
 ## Run

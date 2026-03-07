@@ -278,6 +278,12 @@ class LightweightUNet(nn.Module):
 
 def build_model(cfg: Dict) -> LightweightUNet:
     model_cfg = cfg["model"]
+    model_type = str(model_cfg.get("model_type", "lightweight_unet")).lower()
+    if model_type in {"bisenet", "bisenetv2", "bisenetv2_lite"}:
+        from .bisenet import build_bisenet_from_cfg
+
+        return build_bisenet_from_cfg(cfg)
+
     data_cfg = cfg["data"]
     channels: Iterable[int] = model_cfg["encoder_channels"]
     return LightweightUNet(
