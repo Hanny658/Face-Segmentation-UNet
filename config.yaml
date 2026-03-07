@@ -53,6 +53,7 @@ train:
   drop_last: true
   use_amp: true
   use_internal_val: true
+  run_val_data: true
   lr: 0.0003
   weight_decay: 0.0005
   min_lr: 0.000001

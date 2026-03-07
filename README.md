@@ -147,6 +147,12 @@ python count_params.py --config config.yaml
 python train.py --config config.yaml
 ```
 
+If `train.run_val_data: true`, after training finishes the script will:
+
+- load `best.pt`
+- run inference on `data/val/images`
+- write predictions to `data/val/masks`
+
 3. Evaluate checkpoint
 
 ```bash

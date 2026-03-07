@@ -9,12 +9,16 @@ from torch.optim import AdamW
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.utils.data import DataLoader
 
+from src.datasets.celebamask_dataset import InferenceDataset
 from src.datasets.celebamask_dataset import SegmentationDataset, match_image_mask_pairs, split_samples
-from src.datasets.transforms import SegEvalTransform, SegTrainTransform
+from src.datasets.transforms import InferenceTransform, SegEvalTransform, SegTrainTransform
+from src.engine.inference import run_inference
 from src.engine.trainer import fit
 from src.losses.segmentation_loss import SegmentationLoss
 from src.models.lightweight_unet import build_model
+from src.utils.checkpoint import load_checkpoint
 from src.utils.class_weights import maybe_load_ce_class_weights
+from src.utils.flip_pairs import get_flip_pairs_from_cfg
 from src.utils.param_count import count_trainable_parameters
 from src.utils.seed import set_seed
 
@@ -157,6 +161,42 @@ def main() -> None:
         cfg=cfg,
         save_dir=save_dir,
     )
+
+    if bool(cfg["train"].get("run_val_data", False)):
+        best_ckpt = save_dir / "best.pt"
+        if not best_ckpt.exists():
+            raise FileNotFoundError(
+                f"run_val_data is enabled but best checkpoint was not found: {best_ckpt}"
+            )
+
+        print("[post-train] run_val_data=true: running inference on data/val/images ...")
+        load_checkpoint(str(best_ckpt), model=model, map_location=device)
+
+        val_image_dir = data_root / cfg["data"]["val_images"]
+        val_mask_dir = data_root / cfg["data"]["val_masks"]
+        val_mask_dir.mkdir(parents=True, exist_ok=True)
+
+        infer_dataset = InferenceDataset(images_dir=val_image_dir, transform=InferenceTransform(cfg))
+        infer_loader = DataLoader(
+            infer_dataset,
+            batch_size=int(cfg["inference"]["batch_size"]),
+            shuffle=False,
+            num_workers=int(cfg["data"]["num_workers"]),
+            pin_memory=bool(cfg["data"]["pin_memory"]),
+            drop_last=False,
+        )
+        flip_pairs = get_flip_pairs_from_cfg(cfg, num_classes=int(cfg["data"]["num_classes"]))
+        run_inference(
+            model=model,
+            data_loader=infer_loader,
+            device=device,
+            output_dir=val_mask_dir,
+            output_ext=str(cfg["inference"]["output_ext"]),
+            tta_flip=bool(cfg["inference"]["tta_flip"]),
+            flip_pairs=flip_pairs,
+            use_amp=bool(cfg["train"]["use_amp"]),
+        )
+        print(f"[post-train] Saved val predictions to: {val_mask_dir.resolve()}")
 
 
 if __name__ == "__main__":
