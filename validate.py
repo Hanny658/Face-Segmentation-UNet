@@ -11,6 +11,7 @@ from src.datasets.transforms import SegEvalTransform
 from src.engine.evaluator import evaluate
 from src.losses.segmentation_loss import SegmentationLoss
 from src.models.lightweight_unet import build_model
+from src.utils.class_names import get_class_names
 from src.utils.checkpoint import load_checkpoint
 from src.utils.class_weights import maybe_load_ce_class_weights
 from src.utils.seed import set_seed
@@ -109,6 +110,13 @@ def main() -> None:
     print(f"Loss: {metrics['loss']:.6f}")
     print(f"Pixel Accuracy: {metrics['pixel_accuracy']:.6f}")
     print(f"F1 (macro): {metrics['f1_macro']:.6f}")
+    class_names = get_class_names(cfg, num_classes=num_classes)
+    print("Per-class F1:")
+    for class_id, (class_name, f1_val, present) in enumerate(
+        zip(class_names, metrics["f1_per_class"], metrics["gt_present"])
+    ):
+        status = "present" if present else "absent"
+        print(f"  [{class_id:02d}] {class_name:<12} f1={float(f1_val):.6f} ({status})")
 
 
 if __name__ == "__main__":

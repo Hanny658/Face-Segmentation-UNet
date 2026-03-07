@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict
+from typing import Any, Dict
 
 import torch
 
@@ -19,7 +19,7 @@ def _fast_confusion_matrix(pred: torch.Tensor, target: torch.Tensor, num_classes
 
 def metrics_from_confusion(
     confusion_matrix: torch.Tensor, beta: float = 1.0, eps: float = 1e-7
-) -> Dict[str, float]:
+) -> Dict[str, Any]:
     conf = confusion_matrix.double()
     tp = torch.diag(conf)
     total = conf.sum()
@@ -41,6 +41,8 @@ def metrics_from_confusion(
         "pixel_accuracy": float(pixel_acc),
         "f1_macro": float(f1_macro),
         "f_measure": float(f1_macro),
+        "f1_per_class": [float(x) for x in f_beta.tolist()],
+        "gt_present": [bool(x) for x in gt_present.tolist()],
     }
 
 
@@ -55,5 +57,5 @@ class SegmentationMeter:
         cm = _fast_confusion_matrix(pred.cpu(), target.cpu(), self.num_classes)
         self.confusion += cm.double()
 
-    def compute(self) -> Dict[str, float]:
+    def compute(self) -> Dict[str, Any]:
         return metrics_from_confusion(self.confusion)

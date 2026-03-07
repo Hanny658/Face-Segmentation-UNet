@@ -37,6 +37,7 @@ This project is a clean prototype for semantic face parsing with strict constrai
 │  └─ utils/
 │     ├─ metrics.py
 │     ├─ class_weights.py
+│     ├─ class_names.py
 │     ├─ checkpoint.py
 │     ├─ plotting.py
 │     ├─ seed.py
@@ -106,6 +107,11 @@ python train.py --config config.yaml
 ```bash
 python validate.py --config config.yaml --checkpoint experiments/baseline/best.pt --source internal
 ```
+
+`validate.py` prints:
+
+- overall loss / pixel accuracy / mean F1
+- per-class F1 with class names from `data.class_names` in `config.yaml`
 
 If `data/val/masks` exists:
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict
+from typing import Any, Dict
 
 import numpy as np
 import torch
@@ -18,7 +18,7 @@ def evaluate(
     num_classes: int,
     use_amp: bool = True,
     desc: str = "eval",
-) -> Dict[str, float]:
+) -> Dict[str, Any]:
     model.eval()
     meter = SegmentationMeter(num_classes=num_classes)
     losses = []
@@ -35,6 +35,6 @@ def evaluate(
         losses.append(loss.item())
         meter.update(logits, masks)
 
-    metrics = meter.compute()
+    metrics: Dict[str, Any] = meter.compute()
     metrics["loss"] = float(np.mean(losses)) if losses else float("nan")
     return metrics
