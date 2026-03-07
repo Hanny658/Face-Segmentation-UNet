@@ -107,6 +107,7 @@ def main() -> None:
         dice_weight=float(cfg["loss"]["dice_weight"]),
         ignore_index=cfg["loss"]["ignore_index"],
         class_weights=ce_class_weights,
+        dice_present_only=bool(cfg["loss"].get("dice_present_only", True)),
     ).to(device)
     optimizer = AdamW(
         model.parameters(),

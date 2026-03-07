@@ -28,17 +28,22 @@ data:
     - neck_l
     - neck
     - cloth
+  # Left/right labels that must be swapped after horizontal flip.
+  flip_pairs:
+    - [4, 5]   # l_eye <-> r_eye
+    - [6, 7]   # l_brow <-> r_brow
+    - [8, 9]   # l_ear <-> r_ear
   val_split: 0.1
   num_workers: 4
   pin_memory: true
 
 model:
   encoder_type: mobilenetv2
-  encoder_channels: [35, 68, 104, 136, 184]
+  encoder_channels: [33, 64, 97, 126, 170]
   expand_ratio: 4
   use_se: false
   residual_blocks: [1, 1, 1, 1]
-  decoder_type: fpn
+  decoder_type: unet
   fpn_channels: 112
   max_trainable_params: 1821085
 
@@ -55,6 +60,7 @@ train:
 
 loss:
   dice_weight: 0.5
+  dice_present_only: true
   ignore_index: null
   ce_weighting:
     enabled: true

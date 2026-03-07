@@ -17,6 +17,7 @@ class SegmentationLoss(nn.Module):
         dice_weight: float = 0.5,
         ignore_index: Optional[int] = None,
         class_weights: Optional[torch.Tensor] = None,
+        dice_present_only: bool = True,
     ) -> None:
         super().__init__()
         if class_weights is not None:
@@ -25,7 +26,11 @@ class SegmentationLoss(nn.Module):
             self.ce = nn.CrossEntropyLoss(weight=class_weights)
         else:
             self.ce = nn.CrossEntropyLoss(weight=class_weights, ignore_index=ignore_index)
-        self.dice = MultiClassDiceLoss(num_classes=num_classes, ignore_index=ignore_index)
+        self.dice = MultiClassDiceLoss(
+            num_classes=num_classes,
+            ignore_index=ignore_index,
+            present_only=dice_present_only,
+        )
         self.dice_weight = dice_weight
 
     def forward(self, logits: torch.Tensor, target: torch.Tensor) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:

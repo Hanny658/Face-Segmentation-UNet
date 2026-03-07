@@ -10,6 +10,20 @@ from torchvision.transforms import ColorJitter, RandomResizedCrop
 from torchvision.transforms import functional as TF
 from torchvision.transforms.functional import InterpolationMode
 
+from src.utils.flip_pairs import get_flip_pairs_from_cfg
+
+
+def _swap_label_pairs(mask_tensor: torch.Tensor, pairs: Tuple[Tuple[int, int], ...]) -> torch.Tensor:
+    if not pairs:
+        return mask_tensor
+    out = mask_tensor.clone()
+    for left_id, right_id in pairs:
+        left_mask = mask_tensor == left_id
+        right_mask = mask_tensor == right_id
+        out[left_mask] = right_id
+        out[right_mask] = left_id
+    return out
+
 
 class SegTrainTransform:
     """Synchronized train-time transforms for image and segmentation mask."""
@@ -17,6 +31,9 @@ class SegTrainTransform:
     def __init__(self, cfg: Dict) -> None:
         size = int(cfg["data"]["input_size"])
         aug_cfg = cfg["augmentation"]
+        self.flip_pairs = tuple(
+            get_flip_pairs_from_cfg(cfg, num_classes=int(cfg["data"]["num_classes"]))
+        )
 
         self.size = size
         self.scale = tuple(aug_cfg["resize_scale"])
@@ -50,9 +67,11 @@ class SegTrainTransform:
             mask, i, j, h, w, size=[self.size, self.size], interpolation=InterpolationMode.NEAREST
         )
 
+        did_hflip = False
         if random.random() < self.hflip_prob:
             image = TF.hflip(image)
             mask = TF.hflip(mask)
+            did_hflip = True
 
         if self.rotation_deg > 0:
             angle = random.uniform(-self.rotation_deg, self.rotation_deg)
@@ -69,6 +88,8 @@ class SegTrainTransform:
         image_tensor = TF.to_tensor(image)
         image_tensor = TF.normalize(image_tensor, mean=self.mean, std=self.std)
         mask_tensor = torch.from_numpy(np.array(mask, dtype=np.int64))
+        if did_hflip and self.flip_pairs:
+            mask_tensor = _swap_label_pairs(mask_tensor, self.flip_pairs)
         return image_tensor, mask_tensor
 
 

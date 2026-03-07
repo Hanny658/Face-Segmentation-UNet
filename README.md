@@ -7,7 +7,7 @@ This project is a clean prototype for semantic face parsing with strict constrai
 - no ensemble
 - lightweight model under `1,821,085` trainable parameters
 - default input resolution: `512 x 512`
-- model: MobileNetV2-style encoder + FPN-style decoder (UNet decoder still supported via config)
+- model: MobileNetV2-style encoder + UNet decoder (FPN decoder also supported via config)
 
 ## Project Structure
 
@@ -76,6 +76,7 @@ pip install -r requirements.txt
 ## Default Training Recipe
 
 - Loss: `CrossEntropy + 0.5 * Dice`
+- Dice defaults to `present-only` averaging (only GT-present classes in a batch)
 - Weighted CE (class-aware) is supported from `experiments/mask_stats.json`
 - Optimizer: `AdamW(lr=3e-4, weight_decay=5e-4)`
 - Scheduler: cosine annealing
@@ -84,7 +85,7 @@ pip install -r requirements.txt
 - AMP: enabled
 - Augmentations:
   - random resized crop
-  - random horizontal flip
+  - random horizontal flip (with left/right label swap for paired classes)
   - random rotation (+/- 15 deg)
   - color jitter
   - gaussian blur
@@ -100,8 +101,8 @@ pip install -r requirements.txt
 
 `model.decoder_type` supports:
 
-- `fpn` (default)
-- `unet`
+- `unet` (default)
+- `fpn`
 
 For a submit-ready residual+FPN variant under the parameter cap, use:
 
@@ -120,6 +121,14 @@ For a PIDNet-style variant under the parameter cap, use:
 ```bash
 python train.py --config experiments/config_pid.yaml
 ```
+
+`config_pid.yaml` uses a closer-to-paper PIDNet setup:
+
+- `pidnet.m / pidnet.n / pidnet.planes / pidnet.ppm_planes / pidnet.head_planes`
+- `pidnet.augment: true` (enables auxiliary P and D heads)
+- `loss.pid_aux` controls auxiliary loss weights for training:
+  - `p_weight`: segmentation aux head weight
+  - `d_weight`: boundary aux head weight (BCE on boundary map)
 
 ## Run
 
@@ -159,6 +168,7 @@ python infer.py --config config.yaml --checkpoint experiments/baseline/best.pt -
 ```
 
 Predictions are saved as indexed masks (default `.png`) in `outputs/`.
+When `--tta-flip` is used, left/right class channels are swapped back before averaging logits.
 
 ## Mask Label Statistics
 
@@ -181,6 +191,7 @@ Current training reads weighted CE settings from `config.yaml`:
 
 - `loss.ce_weighting.enabled`
 - `loss.ce_weighting.stats_json`
+- `loss.dice_present_only`
 - `loss.ce_weighting.key` (for example `recommended_weighted_ce.weights`)
 
 ## Slurm Job Scripts

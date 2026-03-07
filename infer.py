@@ -11,6 +11,7 @@ from src.datasets.transforms import InferenceTransform
 from src.engine.inference import run_inference
 from src.models.lightweight_unet import build_model
 from src.utils.checkpoint import load_checkpoint
+from src.utils.flip_pairs import get_flip_pairs_from_cfg
 
 
 def parse_args() -> argparse.Namespace:
@@ -57,6 +58,7 @@ def main() -> None:
 
     output_dir = Path(cfg["inference"]["output_dir"])
     output_dir.mkdir(parents=True, exist_ok=True)
+    flip_pairs = get_flip_pairs_from_cfg(cfg, num_classes=int(cfg["data"]["num_classes"]))
     run_inference(
         model=model,
         data_loader=loader,
@@ -64,6 +66,7 @@ def main() -> None:
         output_dir=output_dir,
         output_ext=str(cfg["inference"]["output_ext"]),
         tta_flip=bool(cfg["inference"]["tta_flip"]),
+        flip_pairs=flip_pairs,
         use_amp=bool(cfg["train"]["use_amp"]),
     )
     print(f"Saved predictions to: {output_dir.resolve()}")

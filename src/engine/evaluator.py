@@ -7,6 +7,7 @@ import torch
 from tqdm import tqdm
 
 from src.utils.metrics import SegmentationMeter
+from src.utils.model_outputs import split_model_outputs
 
 
 @torch.no_grad()
@@ -29,7 +30,8 @@ def evaluate(
         masks = batch["mask"].to(device, non_blocking=True)
 
         with torch.amp.autocast(device_type=device.type, enabled=amp_enabled):
-            logits = model(images)
+            outputs = model(images)
+            logits, _, _ = split_model_outputs(outputs)
             loss, _ = criterion(logits, masks)
 
         losses.append(loss.item())

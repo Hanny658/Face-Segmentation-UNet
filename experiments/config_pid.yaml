@@ -36,12 +36,12 @@ model:
   model_type: pidnet
   max_trainable_params: 1821085
   pidnet:
-    stem_channels: 32
-    p_channels: 96
-    d_channels: 40
-    i_channels: [56, 112, 152]
-    i_blocks: [1, 1, 1]
-    head_channels: 176
+    m: 1
+    n: 3
+    planes: 16
+    ppm_planes: 24
+    head_planes: 16
+    augment: true
 
 train:
   epochs: 100
@@ -57,6 +57,11 @@ train:
 loss:
   dice_weight: 0.5
   ignore_index: null
+  pid_aux:
+    enabled: true
+    p_weight: 0.4
+    d_weight: 0.1
+    d_pos_weight: 4.0
   ce_weighting:
     enabled: true
     stats_json: experiments/mask_stats.json
