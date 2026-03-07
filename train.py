@@ -135,6 +135,15 @@ def main() -> None:
         w_min = float(ce_class_weights.min().item())
         w_max = float(ce_class_weights.max().item())
         print(f"Weighted CE enabled: min_weight={w_min:.6f}, max_weight={w_max:.6f}")
+    boundary_cfg = cfg.get("loss", {}).get("boundary", {})
+    if bool(boundary_cfg.get("enabled", False)):
+        print(
+            "Boundary loss enabled: "
+            f"weight={float(boundary_cfg.get('weight', 0.05))}, "
+            f"pos_weight={boundary_cfg.get('pos_weight', 4.0)}, "
+            f"warmup_epochs={int(boundary_cfg.get('warmup_epochs', 0))}, "
+            f"pred_scale={float(boundary_cfg.get('pred_scale', 4.0))}"
+        )
 
     fit(
         model=model,

@@ -28,6 +28,10 @@ data:
     - neck_l
     - neck
     - cloth
+  flip_pairs:
+    - [4, 5]
+    - [6, 7]
+    - [8, 9]
   val_split: 0.1
   num_workers: 4
   pin_memory: true
@@ -56,7 +60,14 @@ train:
 
 loss:
   dice_weight: 0.5
+  dice_present_only: true
   ignore_index: null
+  boundary:
+    enabled: true
+    weight: 0.05
+    pos_weight: 4.0
+    warmup_epochs: 8
+    pred_scale: 4.0
   pid_aux:
     enabled: true
     p_weight: 0.4

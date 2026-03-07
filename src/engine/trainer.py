@@ -10,6 +10,7 @@ import torch.nn as nn
 from tqdm import tqdm
 
 from src.engine.evaluator import evaluate
+from src.losses.boundary import boundary_bce_from_logits
 from src.utils.checkpoint import save_checkpoint
 from src.utils.model_outputs import split_model_outputs
 from src.utils.plotting import plot_validation_f1
@@ -51,11 +52,20 @@ def train_one_epoch(
     else:
         bce = nn.BCEWithLogitsLoss()
 
+    boundary_cfg = cfg.get("loss", {}).get("boundary", {})
+    boundary_enabled = bool(boundary_cfg.get("enabled", False))
+    boundary_weight = float(boundary_cfg.get("weight", 0.05))
+    boundary_pos_weight = boundary_cfg.get("pos_weight", 4.0)
+    boundary_pred_scale = float(boundary_cfg.get("pred_scale", 4.0))
+    boundary_warmup_epochs = int(boundary_cfg.get("warmup_epochs", 0))
+    boundary_active = boundary_enabled and epoch >= boundary_warmup_epochs
+
     total_losses = []
     ce_losses = []
     dice_losses = []
     aux_p_losses = []
     aux_d_losses = []
+    boundary_losses = []
 
     progress = tqdm(data_loader, desc=f"train {epoch + 1}/{epochs}", leave=False)
     for batch in progress:
@@ -70,13 +80,27 @@ def train_one_epoch(
 
             aux_p_loss = torch.zeros((), device=device)
             aux_d_loss = torch.zeros((), device=device)
+            boundary_loss = torch.zeros((), device=device)
+            boundary_target = None
             if aux_enabled and aux_p_logits is not None:
                 aux_p_loss, _ = criterion(aux_p_logits, masks)
                 loss = loss + aux_p_weight * aux_p_loss
             if aux_enabled and aux_d_logits is not None:
-                boundary_target = _mask_to_boundary_target(masks)
+                if boundary_target is None:
+                    boundary_target = _mask_to_boundary_target(masks)
                 aux_d_loss = bce(aux_d_logits, boundary_target)
                 loss = loss + aux_d_weight * aux_d_loss
+            if boundary_enabled:
+                if boundary_target is None:
+                    boundary_target = _mask_to_boundary_target(masks)
+                boundary_loss = boundary_bce_from_logits(
+                    main_logits,
+                    boundary_target,
+                    pos_weight=boundary_pos_weight,
+                    pred_scale=boundary_pred_scale,
+                )
+                if boundary_active:
+                    loss = loss + boundary_weight * boundary_loss
 
         scaler.scale(loss).backward()
         scaler.step(optimizer)
@@ -87,6 +111,7 @@ def train_one_epoch(
         dice_losses.append(float(comp["dice"].item()))
         aux_p_losses.append(float(aux_p_loss.detach().item()))
         aux_d_losses.append(float(aux_d_loss.detach().item()))
+        boundary_losses.append(float(boundary_loss.detach().item()))
         progress.set_postfix(loss=f"{np.mean(total_losses):.4f}")
 
     return {
@@ -95,6 +120,8 @@ def train_one_epoch(
         "dice": float(np.mean(dice_losses)),
         "aux_p": float(np.mean(aux_p_losses)),
         "aux_d": float(np.mean(aux_d_losses)),
+        "boundary": float(np.mean(boundary_losses)),
+        "boundary_active": 1.0 if boundary_active else 0.0,
     }
 
 

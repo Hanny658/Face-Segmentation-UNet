@@ -77,6 +77,9 @@ pip install -r requirements.txt
 
 - Loss: `CrossEntropy + 0.5 * Dice`
 - Dice defaults to `present-only` averaging (only GT-present classes in a batch)
+- Optional boundary regularization is enabled by default:
+  - total = `CE + 0.5*Dice + 0.05*Boundary` (after warmup)
+  - warmup: first `8` epochs without boundary term
 - Weighted CE (class-aware) is supported from `experiments/mask_stats.json`
 - Optimizer: `AdamW(lr=3e-4, weight_decay=5e-4)`
 - Scheduler: cosine annealing
@@ -192,6 +195,7 @@ Current training reads weighted CE settings from `config.yaml`:
 - `loss.ce_weighting.enabled`
 - `loss.ce_weighting.stats_json`
 - `loss.dice_present_only`
+- `loss.boundary.enabled / weight / pos_weight / warmup_epochs / pred_scale`
 - `loss.ce_weighting.key` (for example `recommended_weighted_ce.weights`)
 
 ## Slurm Job Scripts
