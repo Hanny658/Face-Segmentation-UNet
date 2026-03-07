@@ -7,6 +7,7 @@ This project is a clean prototype for semantic face parsing with strict constrai
 - no ensemble
 - lightweight model under `1,821,085` trainable parameters
 - default input resolution: `512 x 512`
+- model: MobileNetV2-style encoder + FPN-style decoder (UNet decoder still supported via config)
 
 ## Project Structure
 

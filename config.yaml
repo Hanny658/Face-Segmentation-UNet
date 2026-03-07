@@ -33,9 +33,11 @@ data:
   pin_memory: true
 
 model:
-  encoder_channels: [33, 64, 97, 126, 170]
+  encoder_channels: [35, 68, 104, 136, 184]
   expand_ratio: 4
   use_se: false
+  decoder_type: fpn
+  fpn_channels: 112
   max_trainable_params: 1821085
 
 train:
@@ -70,9 +72,9 @@ augmentation:
     contrast: 0.2
     saturation: 0.2
     hue: 0.05
-    prob: 0.8
+    prob: 0.7
   gaussian_blur:
-    prob: 0.2
+    prob: 0.1
     sigma: [0.1, 1.5]
 
 inference:

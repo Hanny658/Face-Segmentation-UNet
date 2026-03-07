@@ -68,6 +68,55 @@ class MobileEncoder(nn.Module):
         return f1, f2, f3, f4, f5
 
 
+class FPNDecoder(nn.Module):
+    """Lightweight FPN-style decoder with top-down fusion."""
+
+    def __init__(self, encoder_channels: Sequence[int], fpn_channels: int = 96) -> None:
+        super().__init__()
+        c1, c2, c3, c4, c5 = encoder_channels
+
+        self.lateral2 = ConvBNAct(c2, fpn_channels, kernel_size=1, stride=1, padding=0)
+        self.lateral3 = ConvBNAct(c3, fpn_channels, kernel_size=1, stride=1, padding=0)
+        self.lateral4 = ConvBNAct(c4, fpn_channels, kernel_size=1, stride=1, padding=0)
+        self.lateral5 = ConvBNAct(c5, fpn_channels, kernel_size=1, stride=1, padding=0)
+
+        # Smoothing heads after top-down addition.
+        self.smooth2 = ConvBNAct(fpn_channels, fpn_channels, kernel_size=3, stride=1, padding=1)
+        self.smooth3 = ConvBNAct(fpn_channels, fpn_channels, kernel_size=3, stride=1, padding=1)
+        self.smooth4 = ConvBNAct(fpn_channels, fpn_channels, kernel_size=3, stride=1, padding=1)
+        self.smooth5 = ConvBNAct(fpn_channels, fpn_channels, kernel_size=3, stride=1, padding=1)
+
+        # High-resolution refinement using the 1/2-scale stem feature.
+        self.detail1 = ConvBNAct(c1, fpn_channels, kernel_size=1, stride=1, padding=0)
+        self.refine = nn.Sequential(
+            ConvBNAct(fpn_channels, fpn_channels, kernel_size=3, stride=1, padding=1),
+            ConvBNAct(fpn_channels, fpn_channels, kernel_size=3, stride=1, padding=1),
+        )
+        self.out_channels = fpn_channels
+
+    @staticmethod
+    def _upsample_to(x: torch.Tensor, ref: torch.Tensor) -> torch.Tensor:
+        return F.interpolate(x, size=ref.shape[-2:], mode="bilinear", align_corners=False)
+
+    def forward(self, features: Tuple[torch.Tensor, ...]) -> torch.Tensor:
+        f1, f2, f3, f4, f5 = features
+
+        p5 = self.lateral5(f5)
+        p4 = self.lateral4(f4) + self._upsample_to(p5, f4)
+        p3 = self.lateral3(f3) + self._upsample_to(p4, f3)
+        p2 = self.lateral2(f2) + self._upsample_to(p3, f2)
+
+        p5 = self.smooth5(p5)
+        p4 = self.smooth4(p4)
+        p3 = self.smooth3(p3)
+        p2 = self.smooth2(p2)
+
+        # Aggregate all pyramid levels at 1/4 scale, then inject 1/2-scale detail.
+        fused = p2 + self._upsample_to(p3, p2) + self._upsample_to(p4, p2) + self._upsample_to(p5, p2)
+        fused = self._upsample_to(fused, f1) + self.detail1(f1)
+        return self.refine(fused)
+
+
 class LightweightUNet(nn.Module):
     def __init__(
         self,
@@ -75,6 +124,8 @@ class LightweightUNet(nn.Module):
         encoder_channels: Sequence[int] = (32, 56, 80, 112, 160),
         expand_ratio: int = 4,
         use_se: bool = False,
+        decoder_type: str = "unet",
+        fpn_channels: int = 96,
     ) -> None:
         super().__init__()
         c1, c2, c3, c4, c5 = encoder_channels
@@ -84,13 +135,23 @@ class LightweightUNet(nn.Module):
             expand_ratio=expand_ratio,
             use_se=use_se,
         )
+        decoder_type = decoder_type.lower().strip()
+        self.decoder_type = decoder_type
 
-        self.dec4 = DecoderBlock(in_channels=c5, skip_channels=c4, out_channels=c4)
-        self.dec3 = DecoderBlock(in_channels=c4, skip_channels=c3, out_channels=c3)
-        self.dec2 = DecoderBlock(in_channels=c3, skip_channels=c2, out_channels=c2)
-        self.dec1 = DecoderBlock(in_channels=c2, skip_channels=c1, out_channels=c1)
-        self.dec0 = DecoderBlock(in_channels=c1, skip_channels=0, out_channels=c1)
-        self.classifier = nn.Conv2d(c1, num_classes, kernel_size=1)
+        if decoder_type == "unet":
+            self.dec4 = DecoderBlock(in_channels=c5, skip_channels=c4, out_channels=c4)
+            self.dec3 = DecoderBlock(in_channels=c4, skip_channels=c3, out_channels=c3)
+            self.dec2 = DecoderBlock(in_channels=c3, skip_channels=c2, out_channels=c2)
+            self.dec1 = DecoderBlock(in_channels=c2, skip_channels=c1, out_channels=c1)
+            self.dec0 = DecoderBlock(in_channels=c1, skip_channels=0, out_channels=c1)
+            decoder_out_channels = c1
+        elif decoder_type == "fpn":
+            self.fpn = FPNDecoder(encoder_channels=encoder_channels, fpn_channels=fpn_channels)
+            decoder_out_channels = self.fpn.out_channels
+        else:
+            raise ValueError(f"Unsupported decoder_type '{decoder_type}'. Use 'unet' or 'fpn'.")
+
+        self.classifier = nn.Conv2d(decoder_out_channels, num_classes, kernel_size=1)
 
         self._init_weights()
 
@@ -106,14 +167,19 @@ class LightweightUNet(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         input_size = x.shape[-2:]
-        f1, f2, f3, f4, f5 = self.encoder(x)
+        features = self.encoder(x)
 
-        x = self.dec4(f5, f4)
-        x = self.dec3(x, f3)
-        x = self.dec2(x, f2)
-        x = self.dec1(x, f1)
-        x = self.dec0(x, None)
-        logits = self.classifier(x)
+        if self.decoder_type == "unet":
+            f1, f2, f3, f4, f5 = features
+            d = self.dec4(f5, f4)
+            d = self.dec3(d, f3)
+            d = self.dec2(d, f2)
+            d = self.dec1(d, f1)
+            d = self.dec0(d, None)
+        else:
+            d = self.fpn(features)
+
+        logits = self.classifier(d)
 
         if logits.shape[-2:] != input_size:
             logits = F.interpolate(logits, size=input_size, mode="bilinear", align_corners=False)
@@ -129,4 +195,6 @@ def build_model(cfg: Dict) -> LightweightUNet:
         encoder_channels=tuple(int(c) for c in channels),
         expand_ratio=int(model_cfg["expand_ratio"]),
         use_se=bool(model_cfg["use_se"]),
+        decoder_type=str(model_cfg.get("decoder_type", "unet")),
+        fpn_channels=int(model_cfg.get("fpn_channels", 96)),
     )
