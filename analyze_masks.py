@@ -5,12 +5,12 @@ import csv
 import json
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
-
 import numpy as np
 import yaml
 from PIL import Image
 from tqdm import tqdm
 
+# Oringinal is JPG, idk what will mask be required for
 MASK_EXTENSIONS = {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff"}
 
 

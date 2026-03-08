@@ -2,13 +2,11 @@ import argparse
 import json
 from pathlib import Path
 from typing import Any, Dict
-
 import torch
 import yaml
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.utils.data import DataLoader
-
 from src.datasets.celebamask_dataset import InferenceDataset
 from src.datasets.celebamask_dataset import SegmentationDataset, match_image_mask_pairs, split_samples
 from src.datasets.transforms import InferenceTransform, SegEvalTransform, SegTrainTransform

@@ -1,8 +1,6 @@
 import argparse
 from typing import Any, Dict
-
 import yaml
-
 from src.models.lightweight_unet import build_model
 from src.utils.param_count import count_parameters, count_trainable_parameters
 
@@ -18,6 +16,7 @@ def load_config(path: str) -> Dict[str, Any]:
         return yaml.safe_load(f)
 
 
+# get and print Model Params
 def main() -> None:
     args = parse_args()
     cfg = load_config(args.config)

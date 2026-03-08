@@ -1,11 +1,9 @@
 import argparse
 from pathlib import Path
 from typing import Any, Dict
-
 import torch
 import yaml
 from torch.utils.data import DataLoader
-
 from src.datasets.celebamask_dataset import SegmentationDataset, has_val_masks, match_image_mask_pairs, split_samples
 from src.datasets.transforms import SegEvalTransform
 from src.engine.evaluator import evaluate

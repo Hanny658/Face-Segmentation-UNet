@@ -1,11 +1,9 @@
 import argparse
 from pathlib import Path
 from typing import Any, Dict
-
 import torch
 import yaml
 from torch.utils.data import DataLoader
-
 from src.datasets.celebamask_dataset import InferenceDataset
 from src.datasets.transforms import InferenceTransform
 from src.engine.inference import run_inference
