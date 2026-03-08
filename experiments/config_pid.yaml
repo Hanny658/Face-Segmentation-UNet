@@ -106,5 +106,3 @@ inference:
   tta_scales: [0.75, 1.0, 1.25]
   output_dir: outputs
   output_ext: .png
-  save_palette: true
-  palette_output_dir: val/masks-palette

@@ -33,13 +33,13 @@ data:
     - [4, 5]   # l_eye <-> r_eye
     - [6, 7]   # l_brow <-> r_brow
     - [8, 9]   # l_ear <-> r_ear
-  val_split: 0.1
+  val_split: 0.04
   num_workers: 2
   pin_memory: true
 
 model:
   encoder_type: mobilenetv2
-  encoder_channels: [33, 64, 97, 126, 170]
+  encoder_channels: [33, 64, 97, 126, 170]  # this settin came with margin of only 1
   expand_ratio: 4
   use_se: false
   residual_blocks: [1, 1, 1, 1]
@@ -49,23 +49,26 @@ model:
 
 train:
   epochs: 100
-  batch_size: 20
+  batch_size: 20    # just great for A40
   drop_last: true
   use_amp: true
   use_internal_val: true
   run_val_data: true
-  lr: 0.0005
+  lr: 0.001
   weight_decay: 0.0005
-  min_lr: 0.000001
+  min_lr: 0.000003
   save_dir: experiments/baseline
 
+validation:
+  use_tta: true # same TTA settings as inference, this is a swittttch
+
 loss:
-  dice_weight: 0.5
+  dice_weight: 0.8
   dice_present_only: true
   ignore_index: null
   boundary:
     enabled: true
-    weight: 0.05
+    weight: 0.1
     pos_weight: 4.0
     warmup_epochs: 8
     pred_scale: 4.0
@@ -74,28 +77,28 @@ loss:
     stats_json: experiments/mask_stats.json
     key: recommended_weighted_ce.weights
     min_weight: 0.0
-    max_weight: null
+    max_weight: 6.0
     normalize_mean_one: false
 
 augmentation:
   hflip_prob: 0.5
   rotation_deg: 15
-  resize_scale: [0.8, 1.0]
+  resize_scale: [0.75, 1.05]
   resize_ratio: [0.9, 1.1]
   color_jitter:
-    brightness: 0.2
+    brightness: 0.3
     contrast: 0.2
     saturation: 0.2
     hue: 0.05
-    prob: 0.7
+    prob: 0.75
   gaussian_blur:
     prob: 0.1
     sigma: [0.1, 1.5]
 
 inference:
   batch_size: 20
-  tta_flip: true
+  tta_enabled: true
+  tta_flip: false
+  tta_scales: [0.75, 1.0, 1.25]
   output_dir: outputs
   output_ext: .png
-  save_palette: true
-  palette_output_dir: val/masks-palette
