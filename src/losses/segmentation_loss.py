@@ -8,6 +8,7 @@ import torch.nn as nn
 from .dice import MultiClassDiceLoss
 
 
+# CrossEntropy + weighted Dice loss for multi-class segmentation, with optional ignore index and class weights.
 class SegmentationLoss(nn.Module):
     """Total loss = CrossEntropy + dice_weight * Dice."""
 

@@ -7,6 +7,7 @@ import torch.nn.functional as F
 from .attention import SqueezeExcitation
 
 
+# BN Block used in MBConv
 class ConvBNAct(nn.Sequential):
     def __init__(
         self,

@@ -231,3 +231,5 @@ def fit(
     created = plot_training_curve(history, plot_path)
     if created:
         print(f"Saved training curve (train loss + optional val F-score) to: {plot_path}")
+
+# Algorihthms are FUN !!!

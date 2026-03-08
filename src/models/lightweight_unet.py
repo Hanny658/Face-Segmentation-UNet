@@ -5,10 +5,10 @@ from typing import Dict, Iterable, Sequence, Tuple
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
 from .blocks import ConvBNAct, DecoderBlock, InvertedResidual
 
 
+# The Unet architecture with MobileNetV2-style encoder
 class MobileEncoder(nn.Module):
     """Compact MobileNetV2-style encoder built from scratch."""
 
@@ -68,6 +68,7 @@ class MobileEncoder(nn.Module):
         return f1, f2, f3, f4, f5
 
 
+# if using ResidualBlk
 class ResidualBlock(nn.Module):
     """Basic residual block with optional downsample projection."""
 
@@ -144,6 +145,7 @@ class ResidualEncoder(nn.Module):
         return f1, f2, f3, f4, f5
 
 
+# if using FPNDecoder
 class FPNDecoder(nn.Module):
     """Lightweight FPN-style decoder with top-down fusion."""
 

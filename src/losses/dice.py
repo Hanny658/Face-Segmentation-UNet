@@ -7,6 +7,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
+# defines and calculates a soft Dice loss for multi-class segmentation, with optional ignore index and present-only averaging.
 class MultiClassDiceLoss(nn.Module):
     """Soft Dice loss for multi-class segmentation."""
 

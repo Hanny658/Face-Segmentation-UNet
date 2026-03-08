@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from typing import Dict, Sequence
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 
+# Tests conducted on a tiny version of BiSeNetV2 with 1/4 channels
 class ConvBNReLU(nn.Sequential):
     def __init__(
         self,

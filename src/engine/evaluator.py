@@ -10,7 +10,7 @@ from src.utils.metrics import SegmentationMeter
 from src.utils.tta import predict_with_tta
 
 
-@torch.no_grad()
+@torch.no_grad() # not for evaluation runtime
 def evaluate(
     model: torch.nn.Module,
     data_loader: torch.utils.data.DataLoader,

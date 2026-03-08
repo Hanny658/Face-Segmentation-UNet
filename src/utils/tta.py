@@ -4,9 +4,9 @@ from typing import Optional, Sequence, Tuple
 
 import torch
 import torch.nn.functional as F
-
 from src.utils.model_outputs import split_model_outputs
 
+# Test-Time Augmentations, not ensembleing models!!!
 
 def _normalize_scales(scales: Optional[Sequence[float]]) -> Tuple[float, ...]:
     if not scales:

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import random
 from typing import Dict, Tuple
-
 import numpy as np
 import torch
 from PIL import Image, ImageFilter
@@ -25,6 +24,7 @@ def _swap_label_pairs(mask_tensor: torch.Tensor, pairs: Tuple[Tuple[int, int], .
     return out
 
 
+# Augmentationnnnnnn-----s transform here
 class SegTrainTransform:
     """Synchronized train-time transforms for image and segmentation mask."""
 

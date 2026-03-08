@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Dict, Optional, Sequence, Tuple
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -271,8 +270,9 @@ class DAPPM(nn.Module):
         return self.process(out)
 
 
+# A PIDNet implementation with configurable width (planes), depth (m, n), and auxiliary heads, designed for efficient semantic segmentation. 
+# The architecture includes a dual-branch design with progressive attention-guided fusion and a choice of pyramid pooling modules.
 class PIDNet(nn.Module):
-    """Closer-to-paper PIDNet implementation adapted for this project pipeline."""
 
     def __init__(
         self,

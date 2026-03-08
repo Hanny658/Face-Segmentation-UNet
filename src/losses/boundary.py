@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from typing import Optional
-
 import torch
 import torch.nn.functional as F
 
 
+# Defines and calculates a boundary loss based on the idea of "soft" boundaries derived from segmentation logits.
 def logits_to_boundary_probability(logits: torch.Tensor, pred_scale: float = 4.0) -> torch.Tensor:
     """Build a soft boundary probability map from segmentation logits."""
     probs = F.softmax(logits, dim=1)

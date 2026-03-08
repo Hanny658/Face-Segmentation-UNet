@@ -3,13 +3,12 @@ from __future__ import annotations
 import random
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Sequence, Tuple
-
 from PIL import Image
 import torch
 from torch.utils.data import Dataset
 
-IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff"}
-MASK_EXTENSIONS = {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff"}
+IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
+MASK_EXTENSIONS = {".png", ".jpg", ".jpeg"}
 
 Sample = Tuple[Path, Path]
 

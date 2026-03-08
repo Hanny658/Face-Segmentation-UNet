@@ -2,9 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import List, Optional, Sequence
-
 from PIL import Image
-
 from src.datasets.celebamask_dataset import MASK_EXTENSIONS
 
 

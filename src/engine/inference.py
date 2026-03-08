@@ -22,7 +22,7 @@ def _to_size_list(orig_sizes) -> Sequence[Sequence[int]]:
     return orig_sizes
 
 
-@torch.no_grad()
+@torch.no_grad() # not for inference runtime
 def run_inference(
     model: torch.nn.Module,
     data_loader: torch.utils.data.DataLoader,
@@ -66,3 +66,5 @@ def run_inference(
             if mask_img.size != (width, height):
                 mask_img = mask_img.resize((width, height), resample=Image.NEAREST)
             mask_img.save(output_dir / f"{name}{output_ext}")
+
+# FUN FUN FUN

@@ -4,7 +4,7 @@ import random
 import numpy as np
 import torch
 
-
+# Seed everything so that people can reproduct
 def set_seed(seed: int) -> None:
     random.seed(seed)
     np.random.seed(seed)
