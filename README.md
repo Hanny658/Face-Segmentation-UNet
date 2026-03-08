@@ -180,6 +180,8 @@ python infer.py --config config.yaml --checkpoint experiments/baseline/best.pt -
 Predictions are saved as indexed masks (default `.png`) in `outputs/`.
 When `--tta-flip` is used, left/right class channels are swapped back before averaging logits.
 If `inference.save_palette: true`, palette PNGs are additionally saved to `inference.palette_output_dir`.
+Scale TTA is configurable via `inference.tta_scales` (for example `[0.75, 1.0, 1.25]`).
+Validation-stage TTA is controlled by `validation.use_tta` (default: `true`).
 
 ## Mask Label Statistics
 
@@ -205,6 +207,8 @@ Current training reads weighted CE settings from `config.yaml`:
 - `loss.dice_present_only`
 - `loss.boundary.enabled / weight / pos_weight / warmup_epochs / pred_scale`
 - `loss.ce_weighting.key` (for example `recommended_weighted_ce.weights`)
+- `inference.tta_enabled / tta_flip / tta_scales`
+- `validation.use_tta`
 
 ## Slurm Job Scripts
 

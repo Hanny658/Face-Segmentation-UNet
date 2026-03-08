@@ -12,6 +12,7 @@ from tqdm import tqdm
 from src.engine.evaluator import evaluate
 from src.losses.boundary import boundary_bce_from_logits
 from src.utils.checkpoint import save_checkpoint
+from src.utils.flip_pairs import get_flip_pairs_from_cfg
 from src.utils.model_outputs import split_model_outputs
 from src.utils.plotting import plot_validation_f_score
 
@@ -140,6 +141,18 @@ def fit(
     num_classes = int(cfg["data"]["num_classes"])
     epochs = int(cfg["train"]["epochs"])
     use_amp = bool(cfg["train"]["use_amp"])
+    inference_cfg = cfg.get("inference", {})
+    val_cfg = cfg.get("validation", {})
+    val_use_tta = bool(val_cfg.get("use_tta", True))
+    tta_enabled = bool(inference_cfg.get("tta_enabled", True))
+    tta_flip = bool(inference_cfg.get("tta_flip", False))
+    tta_scales = inference_cfg.get("tta_scales", [1.0])
+    flip_pairs = get_flip_pairs_from_cfg(cfg, num_classes=num_classes)
+    if val_loader is not None:
+        print(
+            "Validation TTA: "
+            f"enabled={bool(val_use_tta and tta_enabled)}, flip={tta_flip}, scales={tta_scales}"
+        )
 
     best_score = -float("inf")
     history = []
@@ -167,6 +180,10 @@ def fit(
                 device=device,
                 num_classes=num_classes,
                 use_amp=use_amp,
+                tta_enabled=bool(val_use_tta and tta_enabled),
+                tta_flip=tta_flip,
+                tta_scales=tta_scales,
+                flip_pairs=flip_pairs,
                 desc=f"val {epoch + 1}/{epochs}",
             )
             current_score = float(val_metrics["f_score"])

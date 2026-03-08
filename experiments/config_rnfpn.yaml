@@ -57,6 +57,9 @@ train:
   min_lr: 0.000001
   save_dir: experiments/residual_fpn
 
+validation:
+  use_tta: true
+
 loss:
   dice_weight: 0.5
   dice_present_only: true
@@ -92,7 +95,9 @@ augmentation:
 
 inference:
   batch_size: 8
+  tta_enabled: true
   tta_flip: false
+  tta_scales: [0.75, 1.0, 1.25]
   output_dir: outputs
   output_ext: .png
   save_palette: true

@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any, Dict, Sequence, Tuple
 
 import numpy as np
 import torch
 from tqdm import tqdm
 
 from src.utils.metrics import SegmentationMeter
-from src.utils.model_outputs import split_model_outputs
+from src.utils.tta import predict_with_tta
 
 
 @torch.no_grad()
@@ -18,6 +18,10 @@ def evaluate(
     device: torch.device,
     num_classes: int,
     use_amp: bool = True,
+    tta_enabled: bool = False,
+    tta_flip: bool = False,
+    tta_scales: Sequence[float] | None = None,
+    flip_pairs: Sequence[Tuple[int, int]] | None = None,
     desc: str = "eval",
 ) -> Dict[str, Any]:
     model.eval()
@@ -30,8 +34,14 @@ def evaluate(
         masks = batch["mask"].to(device, non_blocking=True)
 
         with torch.amp.autocast(device_type=device.type, enabled=amp_enabled):
-            outputs = model(images)
-            logits, _, _ = split_model_outputs(outputs)
+            logits = predict_with_tta(
+                model=model,
+                images=images,
+                use_tta=bool(tta_enabled),
+                tta_flip=bool(tta_flip),
+                tta_scales=tta_scales,
+                flip_pairs=flip_pairs,
+            )
             loss, _ = criterion(logits, masks)
 
         losses.append(loss.item())

@@ -12,6 +12,7 @@ from src.models.lightweight_unet import build_model
 from src.utils.class_names import get_class_names
 from src.utils.checkpoint import load_checkpoint
 from src.utils.class_weights import maybe_load_ce_class_weights
+from src.utils.flip_pairs import get_flip_pairs_from_cfg
 from src.utils.seed import set_seed
 
 
@@ -95,6 +96,12 @@ def main() -> None:
         class_weights=ce_class_weights,
         dice_present_only=bool(cfg["loss"].get("dice_present_only", True)),
     ).to(device)
+    val_use_tta = bool(cfg.get("validation", {}).get("use_tta", True)) and bool(
+        cfg.get("inference", {}).get("tta_enabled", True)
+    )
+    tta_flip = bool(cfg.get("inference", {}).get("tta_flip", False))
+    tta_scales = cfg.get("inference", {}).get("tta_scales", [1.0])
+    flip_pairs = get_flip_pairs_from_cfg(cfg, num_classes=num_classes)
 
     metrics = evaluate(
         model=model,
@@ -103,9 +110,14 @@ def main() -> None:
         device=device,
         num_classes=num_classes,
         use_amp=bool(cfg["train"]["use_amp"]),
+        tta_enabled=val_use_tta,
+        tta_flip=tta_flip,
+        tta_scales=tta_scales,
+        flip_pairs=flip_pairs,
         desc=f"validate:{args.source}",
     )
     print(f"Samples: {len(dataset)}")
+    print(f"TTA: enabled={val_use_tta}, flip={tta_flip}, scales={tta_scales}")
     print(f"Loss: {metrics['loss']:.6f}")
     print(f"Pixel Accuracy: {metrics['pixel_accuracy']:.6f}")
     print(f"F-score: {metrics['f_score']:.6f}")

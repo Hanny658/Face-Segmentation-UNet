@@ -63,6 +63,9 @@ def main() -> None:
     output_dir = Path(cfg["inference"]["output_dir"])
     output_dir.mkdir(parents=True, exist_ok=True)
     flip_pairs = get_flip_pairs_from_cfg(cfg, num_classes=int(cfg["data"]["num_classes"]))
+    tta_enabled = bool(cfg.get("inference", {}).get("tta_enabled", True))
+    tta_flip = bool(cfg["inference"]["tta_flip"])
+    tta_scales = cfg.get("inference", {}).get("tta_scales", [1.0])
     save_palette = bool(cfg.get("inference", {}).get("save_palette", False))
     palette_output_dir = None
     palette = None
@@ -79,12 +82,15 @@ def main() -> None:
         device=device,
         output_dir=output_dir,
         output_ext=str(cfg["inference"]["output_ext"]),
-        tta_flip=bool(cfg["inference"]["tta_flip"]),
+        tta_enabled=tta_enabled,
+        tta_flip=tta_flip,
+        tta_scales=tta_scales,
         flip_pairs=flip_pairs,
         palette_output_dir=palette_output_dir,
         palette=palette,
         use_amp=bool(cfg["train"]["use_amp"]),
     )
+    print(f"TTA: enabled={tta_enabled}, flip={tta_flip}, scales={tta_scales}")
     print(f"Saved predictions to: {output_dir.resolve()}")
     if palette_output_dir is not None:
         print(f"Saved palette predictions to: {palette_output_dir.resolve()}")

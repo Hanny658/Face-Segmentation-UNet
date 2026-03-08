@@ -5,11 +5,10 @@ from typing import Iterable, Optional, Sequence, Tuple
 
 import numpy as np
 import torch
-import torch.nn.functional as F
 from PIL import Image
 from tqdm import tqdm
 
-from src.utils.model_outputs import split_model_outputs
+from src.utils.tta import predict_with_tta
 
 
 def _to_size_list(orig_sizes) -> Sequence[Sequence[int]]:
@@ -23,18 +22,6 @@ def _to_size_list(orig_sizes) -> Sequence[Sequence[int]]:
     return orig_sizes
 
 
-def _swap_logit_channels(
-    logits: torch.Tensor, flip_pairs: Tuple[Tuple[int, int], ...]
-) -> torch.Tensor:
-    if not flip_pairs:
-        return logits
-    out = logits.clone()
-    for left_id, right_id in flip_pairs:
-        out[:, left_id] = logits[:, right_id]
-        out[:, right_id] = logits[:, left_id]
-    return out
-
-
 @torch.no_grad()
 def run_inference(
     model: torch.nn.Module,
@@ -42,7 +29,9 @@ def run_inference(
     device: torch.device,
     output_dir: Path,
     output_ext: str = ".png",
+    tta_enabled: bool = True,
     tta_flip: bool = False,
+    tta_scales: Sequence[float] | None = None,
     flip_pairs: Sequence[Tuple[int, int]] | None = None,
     palette_output_dir: Optional[Path] = None,
     palette: Optional[Sequence[int]] = None,
@@ -51,7 +40,6 @@ def run_inference(
     model.eval()
     amp_enabled = use_amp and device.type == "cuda"
     output_ext = output_ext if output_ext.startswith(".") else f".{output_ext}"
-    flip_pairs = tuple((int(a), int(b)) for a, b in (flip_pairs or []))
     palette_list = [int(x) & 255 for x in palette] if palette is not None else None
     if palette_output_dir is not None:
         palette_output_dir.mkdir(parents=True, exist_ok=True)
@@ -62,12 +50,14 @@ def run_inference(
         orig_sizes = _to_size_list(batch["orig_size"])
 
         with torch.amp.autocast(device_type=device.type, enabled=amp_enabled):
-            logits, _, _ = split_model_outputs(model(images))
-            if tta_flip:
-                flipped_logits, _, _ = split_model_outputs(model(torch.flip(images, dims=[3])))
-                flipped_logits = torch.flip(flipped_logits, dims=[3])
-                flipped_logits = _swap_logit_channels(flipped_logits, flip_pairs)
-                logits = 0.5 * (logits + flipped_logits)
+            logits = predict_with_tta(
+                model=model,
+                images=images,
+                use_tta=bool(tta_enabled),
+                tta_flip=bool(tta_flip),
+                tta_scales=tta_scales,
+                flip_pairs=flip_pairs,
+            )
             pred = logits.argmax(dim=1)
 
         pred_np = pred.cpu().numpy().astype(np.uint8)
