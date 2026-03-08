@@ -52,11 +52,6 @@ def apply_overrides(cfg: Dict[str, Any], args: argparse.Namespace) -> Dict[str, 
     return cfg
 
 
-def _resolve_under(root: Path, raw_path: str) -> Path:
-    p = Path(str(raw_path))
-    return p if p.is_absolute() else root / p
-
-
 def main() -> None:
     args = parse_args()
     cfg = apply_overrides(load_config(args.config), args)
@@ -179,16 +174,9 @@ def main() -> None:
         val_image_dir = data_root / cfg["data"]["val_images"]
         val_mask_dir = data_root / cfg["data"]["val_masks"]
         val_mask_dir.mkdir(parents=True, exist_ok=True)
-        save_palette = bool(cfg.get("inference", {}).get("save_palette", False))
-        palette_output_dir = None
-        palette = None
-        if save_palette:
-            palette_output_dir = _resolve_under(
-                data_root, str(cfg.get("inference", {}).get("palette_output_dir", "val/masks-palette"))
-            )
-            palette = load_palette_from_masks_dir(train_masks)
-            if palette is None:
-                palette = make_pascal_palette()
+        palette = load_palette_from_masks_dir(train_masks)
+        if palette is None:
+            palette = make_pascal_palette()
 
         infer_dataset = InferenceDataset(images_dir=val_image_dir, transform=InferenceTransform(cfg))
         infer_loader = DataLoader(
@@ -210,13 +198,10 @@ def main() -> None:
             tta_flip=bool(cfg["inference"]["tta_flip"]),
             tta_scales=cfg.get("inference", {}).get("tta_scales", [1.0]),
             flip_pairs=flip_pairs,
-            palette_output_dir=palette_output_dir,
             palette=palette,
             use_amp=bool(cfg["train"]["use_amp"]),
         )
         print(f"[post-train] Saved val predictions to: {val_mask_dir.resolve()}")
-        if palette_output_dir is not None:
-            print(f"[post-train] Saved val palette predictions to: {palette_output_dir.resolve()}")
 
 
 if __name__ == "__main__":

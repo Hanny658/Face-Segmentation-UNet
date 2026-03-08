@@ -28,11 +28,6 @@ def load_config(path: str) -> Dict[str, Any]:
         return yaml.safe_load(f)
 
 
-def _resolve_under(root: Path, raw_path: str) -> Path:
-    p = Path(str(raw_path))
-    return p if p.is_absolute() else root / p
-
-
 def main() -> None:
     args = parse_args()
     cfg = load_config(args.config)
@@ -66,16 +61,9 @@ def main() -> None:
     tta_enabled = bool(cfg.get("inference", {}).get("tta_enabled", True))
     tta_flip = bool(cfg["inference"]["tta_flip"])
     tta_scales = cfg.get("inference", {}).get("tta_scales", [1.0])
-    save_palette = bool(cfg.get("inference", {}).get("save_palette", False))
-    palette_output_dir = None
-    palette = None
-    if save_palette:
-        palette_output_dir = _resolve_under(
-            data_root, str(cfg.get("inference", {}).get("palette_output_dir", "val/masks-palette"))
-        )
-        palette = load_palette_from_masks_dir(data_root / cfg["data"]["train_masks"])
-        if palette is None:
-            palette = make_pascal_palette()
+    palette = load_palette_from_masks_dir(data_root / cfg["data"]["train_masks"])
+    if palette is None:
+        palette = make_pascal_palette()
     run_inference(
         model=model,
         data_loader=loader,
@@ -86,14 +74,11 @@ def main() -> None:
         tta_flip=tta_flip,
         tta_scales=tta_scales,
         flip_pairs=flip_pairs,
-        palette_output_dir=palette_output_dir,
         palette=palette,
         use_amp=bool(cfg["train"]["use_amp"]),
     )
     print(f"TTA: enabled={tta_enabled}, flip={tta_flip}, scales={tta_scales}")
     print(f"Saved predictions to: {output_dir.resolve()}")
-    if palette_output_dir is not None:
-        print(f"Saved palette predictions to: {palette_output_dir.resolve()}")
 
 
 if __name__ == "__main__":

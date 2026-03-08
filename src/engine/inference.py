@@ -33,7 +33,6 @@ def run_inference(
     tta_flip: bool = False,
     tta_scales: Sequence[float] | None = None,
     flip_pairs: Sequence[Tuple[int, int]] | None = None,
-    palette_output_dir: Optional[Path] = None,
     palette: Optional[Sequence[int]] = None,
     use_amp: bool = True,
 ) -> None:
@@ -41,8 +40,6 @@ def run_inference(
     amp_enabled = use_amp and device.type == "cuda"
     output_ext = output_ext if output_ext.startswith(".") else f".{output_ext}"
     palette_list = [int(x) & 255 for x in palette] if palette is not None else None
-    if palette_output_dir is not None:
-        palette_output_dir.mkdir(parents=True, exist_ok=True)
 
     for batch in tqdm(data_loader, desc="infer", leave=False):
         images = batch["image"].to(device, non_blocking=True)
@@ -63,14 +60,9 @@ def run_inference(
         pred_np = pred.cpu().numpy().astype(np.uint8)
         for mask_arr, name, size in zip(pred_np, names, orig_sizes):
             width, height = int(size[0]), int(size[1])
-            mask_img = Image.fromarray(mask_arr, mode="L")
+            mask_img = Image.fromarray(mask_arr, mode="P")
+            if palette_list is not None:
+                mask_img.putpalette(palette_list)
             if mask_img.size != (width, height):
                 mask_img = mask_img.resize((width, height), resample=Image.NEAREST)
             mask_img.save(output_dir / f"{name}{output_ext}")
-            if palette_output_dir is not None:
-                pal_img = Image.fromarray(mask_arr, mode="P")
-                if palette_list is not None:
-                    pal_img.putpalette(palette_list)
-                if pal_img.size != (width, height):
-                    pal_img = pal_img.resize((width, height), resample=Image.NEAREST)
-                pal_img.save(palette_output_dir / f"{name}.png")

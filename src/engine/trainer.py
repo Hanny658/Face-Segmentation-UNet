@@ -14,7 +14,7 @@ from src.losses.boundary import boundary_bce_from_logits
 from src.utils.checkpoint import save_checkpoint
 from src.utils.flip_pairs import get_flip_pairs_from_cfg
 from src.utils.model_outputs import split_model_outputs
-from src.utils.plotting import plot_validation_f_score
+from src.utils.plotting import plot_training_curve
 
 
 def _mask_to_boundary_target(mask: torch.Tensor) -> torch.Tensor:
@@ -227,8 +227,7 @@ def fit(
     with open(save_dir / "history.json", "w", encoding="utf-8") as f:
         json.dump(history, f, indent=2)
 
-    if val_loader is not None:
-        plot_path = save_dir / "val_fscore_curve.png"
-        created = plot_validation_f_score(history, plot_path)
-        if created:
-            print(f"Saved validation F-score curve to: {plot_path}")
+    plot_path = save_dir / "val_fscore_curve.png"
+    created = plot_training_curve(history, plot_path)
+    if created:
+        print(f"Saved training curve (train loss + optional val F-score) to: {plot_path}")

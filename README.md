@@ -93,7 +93,9 @@ pip install -r requirements.txt
   - color jitter
   - gaussian blur
 - Internal validation split from train set by default (`val_split=0.1`)
-- Validation F-score curve is saved to `experiments/<run>/val_fscore_curve.png` when validation is enabled
+- Training curve is saved to `experiments/<run>/val_fscore_curve.png`:
+  - train loss is always plotted
+  - validation F-score is overlaid when validation is enabled
 
 ### Encoder/Decoder Options
 
@@ -152,7 +154,6 @@ If `train.run_val_data: true`, after training finishes the script will:
 - load `best.pt`
 - run inference on `data/val/images`
 - write predictions to `data/val/masks`
-- also write palette masks to `data/val/masks-palette` (when `inference.save_palette: true`)
 
 3. Evaluate checkpoint
 
@@ -178,8 +179,8 @@ python infer.py --config config.yaml --checkpoint experiments/baseline/best.pt -
 ```
 
 Predictions are saved as indexed masks (default `.png`) in `outputs/`.
+Masks are written in palette (`P`) mode by default for direct visual inspection.
 When `--tta-flip` is used, left/right class channels are swapped back before averaging logits.
-If `inference.save_palette: true`, palette PNGs are additionally saved to `inference.palette_output_dir`.
 Scale TTA is configurable via `inference.tta_scales` (for example `[0.75, 1.0, 1.25]`).
 Validation-stage TTA is controlled by `validation.use_tta` (default: `true`).
 
@@ -246,7 +247,7 @@ All key outputs are written into the same run directory, default:
 - `experiments/run_<SLURM_JOB_ID>/best.pt`
 - `experiments/run_<SLURM_JOB_ID>/last.pt`
 - `experiments/run_<SLURM_JOB_ID>/history.json`
-- `experiments/run_<SLURM_JOB_ID>/val_fscore_curve.png` (if validation is enabled)
+- `experiments/run_<SLURM_JOB_ID>/val_fscore_curve.png` (train loss + optional val F-score)
 - `experiments/run_<SLURM_JOB_ID>/val_metrics.txt`
 - `experiments/run_<SLURM_JOB_ID>/param_count.txt`
 
