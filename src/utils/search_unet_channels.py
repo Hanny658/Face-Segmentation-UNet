@@ -23,6 +23,10 @@ BASE_CHANNELS = (32, 64, 96, 128, 160)
 N = 10
 MIN_CHANNEL = 4
 EARLY_STOP_GAP = 128
+'''
+Example usage with course specs:
+uv run python src/utils/search_unet_channels.py --max-param 1821085
+'''
 
 
 # Construct the candidate list for each lvl
