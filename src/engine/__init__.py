@@ -1,1 +1,1 @@
-# Shi*Mountain from Python 3.8+
+# Shi*Mountain from Python 2 era

@@ -83,3 +83,6 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+# Algorithms are FUN!!!
+# Inferred by Hanny for ACV Assignment 1

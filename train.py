@@ -39,6 +39,7 @@ def load_config(path: str) -> Dict[str, Any]:
 
 
 def apply_overrides(cfg: Dict[str, Any], args: argparse.Namespace) -> Dict[str, Any]:
+    # Arguments passed in are having higher priority than static configs!
     if args.save_dir is not None:
         cfg["train"]["save_dir"] = args.save_dir
     if args.epochs is not None:
@@ -76,6 +77,7 @@ def main() -> None:
     train_dataset = SegmentationDataset(train_samples, transform=train_transform)
     val_dataset = SegmentationDataset(val_samples, transform=eval_transform) if val_samples else None
 
+    # now load data
     train_loader = DataLoader(
         train_dataset,
         batch_size=int(cfg["train"]["batch_size"]),
@@ -148,6 +150,7 @@ def main() -> None:
             f"pred_scale={float(boundary_cfg.get('pred_scale', 4.0))}"
         )
 
+    # Time to pass everything to the trainer!
     fit(
         model=model,
         train_loader=train_loader,

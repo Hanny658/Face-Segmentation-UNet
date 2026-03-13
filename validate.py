@@ -46,7 +46,7 @@ def main() -> None:
     if args.num_workers is not None:
         cfg["data"]["num_workers"] = args.num_workers
 
-    set_seed(cfg["seed"])
+    set_seed(cfg["seed"]) # Seeds all to ensure reproducibility~
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     transform = SegEvalTransform(cfg)
     data_root = Path(cfg["data"]["root"])
@@ -82,7 +82,7 @@ def main() -> None:
         shuffle=False,
         num_workers=int(cfg["data"]["num_workers"]),
         pin_memory=bool(cfg["data"]["pin_memory"]),
-        drop_last=False,
+        drop_last=False, # currently not dropping as I'm making sure to let batch size a divisor from training set lol
     )
 
     model = build_model(cfg).to(device)
@@ -96,6 +96,7 @@ def main() -> None:
         class_weights=ce_class_weights,
         dice_present_only=bool(cfg["loss"].get("dice_present_only", True)),
     ).to(device)
+    # Test-time augmentation settings
     val_use_tta = bool(cfg.get("validation", {}).get("use_tta", True)) and bool(
         cfg.get("inference", {}).get("tta_enabled", True)
     )
