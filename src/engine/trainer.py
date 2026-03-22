@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 import json
 from pathlib import Path
 from typing import Dict, Optional
@@ -15,6 +16,15 @@ from src.utils.checkpoint import save_checkpoint
 from src.utils.flip_pairs import get_flip_pairs_from_cfg
 from src.utils.model_outputs import split_model_outputs
 from src.utils.plotting import plot_training_curve
+
+
+@torch.no_grad()
+def _update_ema(ema_model: torch.nn.Module, model: torch.nn.Module, decay: float) -> None:
+    for ema_param, param in zip(ema_model.parameters(), model.parameters()):
+        ema_param.data.mul_(decay).add_(param.data, alpha=1.0 - decay)
+    # Keep BN running statistics in sync with the online model.
+    for ema_buffer, buffer in zip(ema_model.buffers(), model.buffers()):
+        ema_buffer.data.copy_(buffer.data)
 
 
 def _mask_to_boundary_target(mask: torch.Tensor) -> torch.Tensor:
@@ -38,6 +48,8 @@ def train_one_epoch(
     use_amp: bool = True,
     epoch: int = 0,
     epochs: int = 0,
+    ema_model: Optional[torch.nn.Module] = None,
+    ema_decay: float = 0.999,
 ) -> Dict[str, float]:
     model.train()
     amp_enabled = use_amp and device.type == "cuda"
@@ -106,6 +118,8 @@ def train_one_epoch(
         scaler.scale(loss).backward()
         scaler.step(optimizer)
         scaler.update()
+        if ema_model is not None:
+            _update_ema(ema_model=ema_model, model=model, decay=ema_decay)
 
         total_losses.append(float(loss.detach().item()))
         ce_losses.append(float(comp["ce"].item()))
@@ -148,6 +162,15 @@ def fit(
     tta_flip = bool(inference_cfg.get("tta_flip", False))
     tta_scales = inference_cfg.get("tta_scales", [1.0])
     flip_pairs = get_flip_pairs_from_cfg(cfg, num_classes=num_classes)
+    ema_cfg = cfg.get("train", {}).get("ema", {})
+    ema_enabled = bool(ema_cfg.get("enabled", False))
+    ema_decay = float(ema_cfg.get("decay", 0.999))
+    ema_model = None
+    if ema_enabled:
+        ema_model = deepcopy(model).eval()
+        for p in ema_model.parameters():
+            p.requires_grad_(False)
+        print(f"EMA enabled: decay={ema_decay:.6f}")
     if val_loader is not None:
         print(
             "Validation TTA: "
@@ -169,12 +192,15 @@ def fit(
             use_amp=use_amp,
             epoch=epoch,
             epochs=epochs,
+            ema_model=ema_model,
+            ema_decay=ema_decay,
         )
         scheduler.step()
 
         if val_loader is not None:
+            eval_model = ema_model if ema_model is not None else model
             val_metrics = evaluate(
-                model=model,
+                model=eval_model,
                 data_loader=val_loader,
                 criterion=criterion,
                 device=device,
@@ -202,6 +228,8 @@ def fit(
             "val_metrics": val_metrics,
             "config": cfg,
         }
+        if ema_model is not None:
+            checkpoint["ema_model_state"] = ema_model.state_dict()
         save_checkpoint(checkpoint, save_dir / "last.pt")
 
         is_best = current_score > best_score

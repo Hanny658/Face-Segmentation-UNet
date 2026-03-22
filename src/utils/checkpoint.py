@@ -20,9 +20,13 @@ def load_checkpoint(
     optimizer: Optional[optim.Optimizer] = None,
     scheduler: Optional[Any] = None,
     scaler: Optional[torch.cuda.amp.GradScaler] = None,
+    prefer_ema: bool = True,
 ) -> Dict[str, Any]:
     checkpoint = torch.load(checkpoint_path, map_location=map_location)
-    model_state = checkpoint.get("model_state", checkpoint)
+    if prefer_ema and "ema_model_state" in checkpoint:
+        model_state = checkpoint["ema_model_state"]
+    else:
+        model_state = checkpoint.get("model_state", checkpoint)
     model.load_state_dict(model_state, strict=True)
 
     if optimizer is not None and "optimizer_state" in checkpoint:

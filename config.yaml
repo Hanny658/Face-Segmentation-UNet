@@ -57,6 +57,9 @@ train:
   lr: 0.002
   weight_decay: 0.0004
   min_lr: 0.000005
+  ema:
+    enabled: false
+    decay: 0.999
   save_dir: experiments/baseline
 
 validation:
